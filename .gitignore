@@ -3,6 +3,7 @@ backend/target/
 backend/out/
 bin/*
 dist/*
+build/*
 
 lib-cov
 *.seed
