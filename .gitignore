@@ -1,3 +1,9 @@
+backend/debug/
+backend/target/
+backend/out/
+bin/*
+dist/*
+
 lib-cov
 *.seed
 *.log

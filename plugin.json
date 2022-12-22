@@ -1,6 +1,6 @@
 {
-  "name": "Example Plugin",
-  "author": "John Doe",
+  "name": "ControllerTools",
+  "author": "Jose Fernandez",
   "flags": ["debug", "_root"],
   "publish": {
     "tags": ["template", "root"],
