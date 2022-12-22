@@ -28,12 +28,20 @@
             "problemMatcher": []
         },
         {
-            "label": "build",
+            "label": "buildfrontend",
             "type": "npm",
             "group": "build",
             "detail": "rollup -c",
             "script": "build",
             "path": "",
+            "problemMatcher": []
+        },
+        {
+            "label": "buildbackend",
+            "type": "shell",
+            "group": "build",
+            "detail": "Build Rust backend",
+            "command": "cross build --manifest-path backend/Cargo.toml",
             "problemMatcher": []
         },
         {
@@ -43,7 +51,8 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "pnpmsetup",
-                "build"
+                "buildfrontend",
+                "buildbackend"
             ],
             "problemMatcher": []
         },
