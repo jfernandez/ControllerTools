@@ -1,22 +1,30 @@
+import pathlib
+import subprocess
+import asyncio
+import os
+
+HOME_DIR = str(pathlib.Path(os.getcwd()).parent.parent.resolve())
+PARENT_DIR = str(pathlib.Path(__file__).parent.resolve())
+
+LOG_LOCATION = "/tmp/controller-tools.py.log"
+
 import logging
 
-logging.basicConfig(filename="/tmp/template.log",
-                    format='[Template] %(asctime)s %(levelname)s %(message)s',
-                    filemode='w+',
-                    force=True)
-logger=logging.getLogger()
-logger.setLevel(logging.INFO) # can be changed to logging.DEBUG for debugging issues
+logging.basicConfig(
+    filename = LOG_LOCATION,
+    format = '%(asctime)s %(levelname)s %(message)s',
+    filemode = 'w',
+    force = True)
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+logging.info(f"ControllerTools main.py https://github.com/alphamercury/ControllerTools")
 
 class Plugin:
-    # A normal method. It can be called from JavaScript using call_plugin_function("method_1", argument1, argument2)
-    async def add(self, left, right):
-        return left + right
-
+    backend_proc = None
     # Asyncio-compatible long-running code, executed in a task when the plugin is loaded
     async def _main(self):
-        logger.info("Hello World!")
-    
-    # Function called first during the unload process, utilize this to handle your plugin being removed
-    async def _unload(self):
-        logger.info("Goodbye World!")
-        pass
+        # startup
+        self.backend_proc = subprocess.Popen([PARENT_DIR + "/bin/controller-tools"])
+        while True:
+            await asyncio.sleep(1)

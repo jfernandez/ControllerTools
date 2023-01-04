@@ -1,7 +1,6 @@
 #!/bin/bash
 
 rm -rf build
-mkdir -p build
 mkdir -p build/bin
 
 npm run build

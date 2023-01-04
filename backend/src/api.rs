@@ -1,12 +1,9 @@
+use anyhow::Result;
+use hidapi::HidApi;
 use serde::{Deserialize, Serialize};
-use usdpl_back::core::serdes::Primitive;
-use log::error;
 
-pub const VERSION: &'static str = env!("CARGO_PKG_VERSION");
-pub const NAME: &'static str = env!("CARGO_PKG_NAME");
-
-const VENDOR_ID: u16 = 0x054c;
-const PRODUCT_ID: u16 = 0x0ce6;
+const DS_VENDOR_ID: u16 = 0x054c;
+const DS_PRODUCT_ID: u16 = 0x0ce6;
 // const INPUT_REPORT_BT: u16 = 0x31;
 const INPUT_REPORT_BT_SIZE: usize = 78;
 // const INPUT_REPORT_USB: u16 = 0x02;
@@ -14,6 +11,58 @@ const INPUT_REPORT_BT_SIZE: usize = 78;
 const DS_STATUS_BATTERY_CAPACITY: u8 = 0xF;
 const DS_STATUS_CHARGING: u8 = 0xF0;
 const DS_STATUS_CHARGING_SHIFT: u8 = 4;
+
+pub struct API {
+    hidapi: HidApi,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Controller {
+    pub name: String,
+    pub product_id: u16,
+    pub vendor_id: u16,
+    pub capacity: u8,
+    pub status: String,
+}
+
+impl API {
+    pub fn new(hidapi: HidApi) -> API {
+        API { hidapi }
+    }
+
+    pub fn get_controllers(&self) -> Result<Vec<Controller>> {
+        let mut controllers: Vec<Controller> = Vec::new();
+        for device_info in self.hidapi.device_list() {
+            match (device_info.vendor_id(), device_info.product_id()) {
+                (DS_VENDOR_ID, DS_PRODUCT_ID) => {
+                    let device = self
+                        .hidapi
+                        .open(device_info.vendor_id(), device_info.product_id())?;
+                    // Read data from device_info
+                    let mut buf: [u8; INPUT_REPORT_BT_SIZE] = [0u8; INPUT_REPORT_BT_SIZE];
+                    let _res = device.read(&mut buf[..]).unwrap();
+
+                    let ds_report: DualsenseInputReport = bincode::deserialize(&buf).unwrap();
+                    let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
+                    let charging_status: u8 =
+                        (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
+                    let battery_status = get_battery_status(charging_status, battery_data);
+
+                    controllers.push(Controller {
+                        name: "PlayStation DualSense".to_string(),
+                        product_id: device_info.product_id(),
+                        vendor_id: device_info.vendor_id(),
+                        capacity: battery_status.capacity,
+                        status: battery_status.status,
+                    });
+                }
+                _ => {}
+            }
+        }
+        return Ok(controllers);
+    }
+}
 
 #[repr(C, packed)]
 #[derive(Copy, Clone, Debug, Deserialize)]
@@ -47,7 +96,6 @@ struct DualsenseInputReport {
     reserved4: [u8; 10],
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct BatteryInfo {
@@ -55,72 +103,35 @@ struct BatteryInfo {
     status: String,
 }
 
-pub fn get_battery_status(_: Vec<Primitive>) -> Vec<Primitive> {
-  let api = hidapi::HidApi::new().unwrap();
-
-  for device in api.device_list() {
-    if device.vendor_id() == VENDOR_ID && device.product_id() == PRODUCT_ID {
-        println!("Found DualSense: {:#?}", device);
-        let device = api.open(device.vendor_id(), device.product_id()).unwrap();
-        // Read data from device
-        let mut buf: [u8; INPUT_REPORT_BT_SIZE] = [0u8; INPUT_REPORT_BT_SIZE];
-        let res = device.read(&mut buf[..]).unwrap();
-
-        println!("res: {}", res);
-        println!("Read: {:?}", &buf[..res]);
-
-        let ds_report: DualsenseInputReport = bincode::deserialize(&buf).unwrap();
-        println!("DualsenseInputReport: {:#?}", ds_report);
-        let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
-        let charging_status: u8 =
-            (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
-        let battery_status = _get_battery_status(charging_status, battery_data);
-
-        let json = match serde_json::to_string(&battery_status) {
-          Ok(x) => x,
-          Err(err) => {
-              error!(
-                  "get_running_game failed due an error serializing game json: {}",
-                  err
-              );
-              return Vec::new();
-          }
-      };
-      return vec![Primitive::Json(json)]
+fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
+    fn min(a: u8, b: u8) -> u8 {
+        if a < b {
+            a
+        } else {
+            b
+        }
     }
-  }
-  return Vec::new();
-}
 
-fn _get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
-  fn min(a: u8, b: u8) -> u8 {
-      if a < b {
-          a
-      } else {
-          b
-      }
-  }
-
-  match charging_status {
-      0x0 => BatteryInfo {
-          capacity: min(battery_data * 10 + 5, 100),
-          status: "discharging".to_string(),
-      },
-      0x1 => BatteryInfo {
-          capacity: 100,
-          status: "full".to_string(),
-      },
-      0x2 => BatteryInfo {
-          capacity: min(battery_data * 10 + 5, 100),
-          status: "charging".to_string(),
-      },
-      0xa | 0xb => BatteryInfo {
-          capacity: 0,
-          status: "not-charging".to_string(),
-      },
-      0xf | _ => BatteryInfo {
-          capacity: 0,
-          status: "unknown".to_string(),
-      },
-  }
+    match charging_status {
+        0x0 => BatteryInfo {
+            capacity: min(battery_data * 10 + 5, 100),
+            status: "discharging".to_string(),
+        },
+        0x1 => BatteryInfo {
+            capacity: 100,
+            status: "full".to_string(),
+        },
+        0x2 => BatteryInfo {
+            capacity: min(battery_data * 10 + 5, 100),
+            status: "charging".to_string(),
+        },
+        0xa | 0xb => BatteryInfo {
+            capacity: 0,
+            status: "not-charging".to_string(),
+        },
+        0xf | _ => BatteryInfo {
+            capacity: 0,
+            status: "unknown".to_string(),
+        },
+    }
 }

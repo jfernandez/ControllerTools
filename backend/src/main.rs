@@ -1,16 +1,25 @@
 mod api;
 
-use std::fs::File;
+use std::{fs::File, net::SocketAddr, sync::Arc};
 
+use api::{Controller, API};
+use axum::{
+    extract::State,
+    http::{HeaderValue, Method, StatusCode},
+    response::{IntoResponse, Response},
+    routing::get,
+    Json, Router,
+};
 use log::info;
 use simplelog::{
     ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
 };
-use usdpl_back::{core::serdes::Primitive, Instance};
+use tower_http::cors::{Any, CorsLayer};
 
 const PORT: u16 = 33220;
 
-fn main() -> Result<(), ()> {
+#[tokio::main]
+async fn main() {
     let _ = CombinedLogger::init(vec![
         TermLogger::new(
             LevelFilter::Debug,
@@ -24,12 +33,53 @@ fn main() -> Result<(), ()> {
             File::create("/tmp/controller-tools.log").unwrap(),
         ),
     ]);
-    info!("Starting backend ({} v{})", api::NAME, api::VERSION);
 
-    Instance::new(PORT)
-        .register("V_INFO", |_: Vec<Primitive>| {
-            vec![format!("{} v{}", api::VERSION, api::VERSION).into()]
-        })
-        .register_blocking("get_battery_status", api::get_battery_status)
-        .run_blocking()
+    let api = Arc::new(API::new(hidapi::HidApi::new().unwrap()));
+    let app = Router::new()
+        .route("/controllers", get(controllers))
+        .layer(
+            CorsLayer::new()
+                .allow_origin("https://steamloopback.host".parse::<HeaderValue>().unwrap())
+                .allow_headers(Any)
+                .allow_methods([Method::GET, Method::POST]),
+        )
+        .with_state(api);
+
+    // run it
+    let addr = SocketAddr::from(([127, 0, 0, 1], PORT));
+    info!("Listening on {}", addr);
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+async fn controllers(State(api): State<Arc<API>>) -> Result<Json<Vec<Controller>>, AppError> {
+    let controllers = tokio::task::spawn_blocking(move || api.get_controllers()).await??;
+    Ok(Json(controllers))
+}
+
+// Make our own error that wraps `anyhow::Error`.
+struct AppError(anyhow::Error);
+
+// Tell axum how to convert `AppError` into a response.
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Something went wrong: {}", self.0),
+        )
+            .into_response()
+    }
+}
+
+// This enables using `?` on functions that return `Result<_, anyhow::Error>` to turn them into
+// `Result<_, AppError>`. That way you don't need to do that manually.
+impl<E> From<E> for AppError
+where
+    E: Into<anyhow::Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
 }

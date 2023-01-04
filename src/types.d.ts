@@ -12,3 +12,11 @@ declare module "*.jpg" {
   const content: string;
   export default content;
 }
+
+export interface Controller {
+  name: string;
+  productId: number;
+  vendorId: number;
+  capacity: number;
+  status: string;
+}
