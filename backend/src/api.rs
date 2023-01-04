@@ -1,5 +1,6 @@
 use anyhow::Result;
 use hidapi::HidApi;
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 const DS_VENDOR_ID: u16 = 0x054c;
@@ -36,6 +37,7 @@ impl API {
         for device_info in self.hidapi.device_list() {
             match (device_info.vendor_id(), device_info.product_id()) {
                 (DS_VENDOR_ID, DS_PRODUCT_ID) => {
+                    debug!("Found DualSense controller: {:?}", device_info);
                     let device = self
                         .hidapi
                         .open(device_info.vendor_id(), device_info.product_id())?;
@@ -57,7 +59,9 @@ impl API {
                         status: battery_status.status,
                     });
                 }
-                _ => {}
+                _ => {
+                    debug!("Unknown controller: {:?}", device_info);
+                }
             }
         }
         return Ok(controllers);
