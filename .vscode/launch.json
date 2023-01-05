@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "type": "lldb",
+      "request": "custom",
+      "name": "Remote executable 'controller-tools'",
+      "preLaunchTask": "rust: remote SteamDeck debug setup",
+      "targetCreateCommands": [
+        "target create ${workspaceFolder}/backend/target/x86_64-unknown-linux-gnu/debug/controller-tools"
+      ],
+      "processCreateCommands": [
+        "gdb-remote steamdeck:17777",
+        "process handle SIGPIPE -n true -p true -s false"
+      ]
+    }
+  ]
+}

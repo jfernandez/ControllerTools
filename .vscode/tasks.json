@@ -1,7 +1,29 @@
 {
     "version": "2.0.0",
     "tasks": [
-        // OTHER
+        {
+            "label": "rust: remote SteamDeck debug setup",
+            "type": "shell",
+            "command": "${workspaceFolder}/scripts/remote_debug.sh",
+            "args": [
+                "${workspaceFolder}",
+                "steamdeck",
+                "17777"
+            ],
+            "group": "none",
+            "dependsOn": [
+                "rust: cross build SteamDeck",
+            ],
+        },
+        {
+            "label": "rust: cross build SteamDeck",
+            "type": "shell",
+            "command": "cross build --manifest-path backend/Cargo.toml",
+            "problemMatcher": [
+                "$rustc"
+            ],
+            "group": "build"
+        },
         {
             "label": "checkforsettings",
             "type": "shell",
@@ -10,7 +32,6 @@
             "command": "bash -c ${workspaceFolder}/.vscode/config.sh",
             "problemMatcher": []
         },
-        // BUILD
         {
             "label": "pnpmsetup",
             "type": "shell",
@@ -56,7 +77,6 @@
             ],
             "problemMatcher": []
         },
-        // DEPLOY
         {
             "label": "createfolders",
             "detail": "Create plugins folder in expected directory",
@@ -106,7 +126,6 @@
             "command": "ssh deck@${config:deckip} -p ${config:deckport} ${config:deckkey} 'echo '${config:deckpass}' | sudo -S systemctl restart plugin_loader'",
             "problemMatcher": []
         },
-        // ALL-IN-ONE
         {
             "label": "allinone",
             "detail": "Build and deploy",

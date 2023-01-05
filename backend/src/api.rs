@@ -1,14 +1,14 @@
 use anyhow::Result;
 use hidapi::HidApi;
-use log::debug;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 
 const DS_VENDOR_ID: u16 = 0x054c;
 const DS_PRODUCT_ID: u16 = 0x0ce6;
-// const INPUT_REPORT_BT: u16 = 0x31;
-const INPUT_REPORT_BT_SIZE: usize = 78;
-// const INPUT_REPORT_USB: u16 = 0x02;
-// const DS_OUTPUT_REPORT_USB_SIZE: u16 = 78;
+const DS_INPUT_REPORT_BT: u8 = 0x31;
+const DS_INPUT_REPORT_BT_SIZE: usize = 78;
+const DS_INPUT_REPORT_USB: u8 = 0x02;
+const DS_INPUT_REPORT_USB_SIZE: usize = 64;
 const DS_STATUS_BATTERY_CAPACITY: u8 = 0xF;
 const DS_STATUS_CHARGING: u8 = 0xF0;
 const DS_STATUS_CHARGING_SHIFT: u8 = 4;
@@ -38,26 +38,51 @@ impl API {
             match (device_info.vendor_id(), device_info.product_id()) {
                 (DS_VENDOR_ID, DS_PRODUCT_ID) => {
                     debug!("Found DualSense controller: {:?}", device_info);
+                    let bluetooth = device_info.interface_number() == -1;
                     let device = self
                         .hidapi
                         .open(device_info.vendor_id(), device_info.product_id())?;
+
                     // Read data from device_info
-                    let mut buf: [u8; INPUT_REPORT_BT_SIZE] = [0u8; INPUT_REPORT_BT_SIZE];
-                    let _res = device.read(&mut buf[..]).unwrap();
-
-                    let ds_report: DualsenseInputReport = bincode::deserialize(&buf).unwrap();
-                    let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
-                    let charging_status: u8 =
-                        (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
-                    let battery_status = get_battery_status(charging_status, battery_data);
-
-                    controllers.push(Controller {
+                    let mut buf = [0u8; DS_INPUT_REPORT_BT_SIZE];
+                    let res = device.read(&mut buf[..])?;
+                    let mut controller = Controller {
                         name: "PlayStation DualSense".to_string(),
                         product_id: device_info.product_id(),
                         vendor_id: device_info.vendor_id(),
-                        capacity: battery_status.capacity,
-                        status: battery_status.status,
-                    });
+                        capacity: 0,
+                        status: "unknown".to_string(),
+                    };
+
+                    if !bluetooth
+                        && buf[0] == DS_INPUT_REPORT_USB
+                        && res == DS_INPUT_REPORT_USB_SIZE
+                    {
+                        debug!("res = {}", res);
+                        let ds_report: DualsenseInputReport = bincode::deserialize(&buf[1..])?;
+                        let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
+                        let charging_status: u8 =
+                            (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
+                        let battery_status = get_battery_status(charging_status, battery_data);
+                        controller.capacity = battery_status.capacity;
+                        controller.status = battery_status.status;
+                    } else if bluetooth
+                        && buf[0] == DS_INPUT_REPORT_BT
+                        && res == DS_INPUT_REPORT_BT_SIZE
+                    {
+                        let ds_report: DualsenseInputReport = bincode::deserialize(&buf[2..])?;
+                        let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
+                        let charging_status: u8 =
+                            (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
+                        let battery_status = get_battery_status(charging_status, battery_data);
+                        controller.capacity = battery_status.capacity;
+                        controller.status = battery_status.status;
+                    } else {
+                        error!("Unhandled report ID: {}", buf[0]);
+                        continue;
+                    }
+
+                    controllers.push(controller);
                 }
                 _ => {
                     debug!("Unknown controller: {:?}", device_info);
