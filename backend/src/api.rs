@@ -25,6 +25,44 @@ pub struct Controller {
     pub status: String,
 }
 
+#[repr(C, packed)]
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct DualSenseTouchPoint {
+    pub contact: u8,
+    pub x_lo: u8,
+    pub _bitfield_align_1: [u8; 0],
+    pub _bitfield_1: BitfieldUnit<[u8; 1usize]>,
+    pub y_hi: u8,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct BitfieldUnit<Storage> {
+    storage: Storage,
+}
+
+#[repr(C, packed)]
+#[derive(Copy, Clone, Debug, Deserialize)]
+pub struct DualSenseInputreport {
+    pub x: u8,
+    pub y: u8,
+    pub rx: u8,
+    pub ry: u8,
+    pub z: u8,
+    pub rz: u8,
+    pub seq_number: u8,
+    pub buttons: [u8; 4usize],
+    pub reserved: [u8; 4usize],
+    pub gyro: [u16; 3usize],
+    pub accel: [u16; 3usize],
+    pub sensor_timestamp: u32,
+    pub reserved2: u8,
+    pub points: [DualSenseTouchPoint; 2usize],
+    pub reserved3: [u8; 12usize],
+    pub status: u8,
+    pub reserved4: [u8; 10usize],
+}
+
 impl API {
     pub fn get_controllers(&self) -> Result<Vec<Controller>> {
         let hidapi = HidApi::new()?;
@@ -53,7 +91,7 @@ impl API {
                         && res == DS_INPUT_REPORT_USB_SIZE
                     {
                         let foo = &buf[1..];
-                        let ds_report: DualsenseInputReport = bincode::deserialize(foo)?;
+                        let ds_report: DualSenseInputreport = bincode::deserialize(foo)?;
                         let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
                         let charging_status: u8 =
                             (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
@@ -64,7 +102,7 @@ impl API {
                         && buf[0] == DS_INPUT_REPORT_BT
                         && res == DS_INPUT_REPORT_BT_SIZE
                     {
-                        let ds_report: DualsenseInputReport = bincode::deserialize(&buf[1..])?;
+                        let ds_report: DualSenseInputreport = bincode::deserialize(&buf[2..])?;
                         let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
                         let charging_status: u8 =
                             (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
@@ -82,38 +120,6 @@ impl API {
         }
         return Ok(controllers);
     }
-}
-
-#[repr(C, packed)]
-#[derive(Copy, Clone, Debug, Deserialize)]
-struct DualsenseTouchPoint {
-    contact: u8,
-    x_lo: u8,
-    x_hi: u8,
-    y_lo: u8,
-    y_hi: u8,
-}
-
-#[repr(C, packed)]
-#[derive(Copy, Clone, Debug, Deserialize)]
-struct DualsenseInputReport {
-    x: u8,
-    y: u8,
-    rx: u8,
-    ry: u8,
-    z: u8,
-    rz: u8,
-    seq_number: u8,
-    buttons: [u8; 4],
-    reserved: [u8; 4],
-    gyro: [u16; 3],
-    accel: [u16; 3],
-    sensor_timestamp: u32,
-    reserved2: u8,
-    points: [DualsenseTouchPoint; 2],
-    reserved3: [u8; 12],
-    status: u8,
-    reserved4: [u8; 10],
 }
 
 #[derive(Debug, Serialize, Deserialize)]
