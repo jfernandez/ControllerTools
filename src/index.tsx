@@ -8,14 +8,18 @@ import {
   staticClasses,
 } from "decky-frontend-lib";
 import { useEffect, useState, VFC } from "react";
-import { BiBluetooth } from "react-icons/bi";
+import { BiBluetooth, BiUsb } from "react-icons/bi";
 import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters } from "react-icons/fa";
-import { BsController } from "react-icons/bs";
+import { BsController, BsBatteryCharging } from "react-icons/bs";
 import { Controller } from "./types";
 import * as backend from "./backend";
 import { IconContext } from "react-icons";
 
 function getBatteryIcon(controller: Controller) {
+  if (controller.status === 'charging') {
+    return <BsBatteryCharging />;
+  }
+
   if (controller.capacity <= 0) {
     return <FaBatteryEmpty />;
   } else if (controller.capacity <= 25) {
@@ -49,7 +53,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
             <div className={gamepadDialogClasses.FieldLabelRow}>
               <div className={gamepadDialogClasses.FieldLabel}>
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' } }}>
-                  <BiBluetooth />
+                  {controller.bluetooth ? <BiBluetooth /> : <BiUsb />}
                 </IconContext.Provider>
                 {controller.name}
               </div>
