@@ -7,15 +7,13 @@ const DS_VENDOR_ID: u16 = 0x054c;
 const DS_PRODUCT_ID: u16 = 0x0ce6;
 const DS_INPUT_REPORT_BT: u8 = 0x31;
 const DS_INPUT_REPORT_BT_SIZE: usize = 78;
-const DS_INPUT_REPORT_USB: u8 = 0x02;
+const DS_INPUT_REPORT_USB: u8 = 0x01;
 const DS_INPUT_REPORT_USB_SIZE: usize = 64;
 const DS_STATUS_BATTERY_CAPACITY: u8 = 0xF;
 const DS_STATUS_CHARGING: u8 = 0xF0;
 const DS_STATUS_CHARGING_SHIFT: u8 = 4;
 
-pub struct API {
-    hidapi: HidApi,
-}
+pub struct API;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -28,20 +26,16 @@ pub struct Controller {
 }
 
 impl API {
-    pub fn new(hidapi: HidApi) -> API {
-        API { hidapi }
-    }
-
     pub fn get_controllers(&self) -> Result<Vec<Controller>> {
+        let hidapi = HidApi::new()?;
         let mut controllers: Vec<Controller> = Vec::new();
-        for device_info in self.hidapi.device_list() {
+
+        for device_info in hidapi.device_list() {
             match (device_info.vendor_id(), device_info.product_id()) {
                 (DS_VENDOR_ID, DS_PRODUCT_ID) => {
                     debug!("Found DualSense controller: {:?}", device_info);
                     let bluetooth = device_info.interface_number() == -1;
-                    let device = self
-                        .hidapi
-                        .open(device_info.vendor_id(), device_info.product_id())?;
+                    let device = hidapi.open(device_info.vendor_id(), device_info.product_id())?;
 
                     // Read data from device_info
                     let mut buf = [0u8; DS_INPUT_REPORT_BT_SIZE];
@@ -58,8 +52,8 @@ impl API {
                         && buf[0] == DS_INPUT_REPORT_USB
                         && res == DS_INPUT_REPORT_USB_SIZE
                     {
-                        debug!("res = {}", res);
-                        let ds_report: DualsenseInputReport = bincode::deserialize(&buf[1..])?;
+                        let foo = &buf[1..];
+                        let ds_report: DualsenseInputReport = bincode::deserialize(foo)?;
                         let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
                         let charging_status: u8 =
                             (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
@@ -70,7 +64,7 @@ impl API {
                         && buf[0] == DS_INPUT_REPORT_BT
                         && res == DS_INPUT_REPORT_BT_SIZE
                     {
-                        let ds_report: DualsenseInputReport = bincode::deserialize(&buf[2..])?;
+                        let ds_report: DualsenseInputReport = bincode::deserialize(&buf[1..])?;
                         let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
                         let charging_status: u8 =
                             (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
@@ -79,14 +73,11 @@ impl API {
                         controller.status = battery_status.status;
                     } else {
                         error!("Unhandled report ID: {}", buf[0]);
-                        continue;
                     }
 
                     controllers.push(controller);
                 }
-                _ => {
-                    debug!("Unknown controller: {:?}", device_info);
-                }
+                _ => {}
             }
         }
         return Ok(controllers);
@@ -147,12 +138,12 @@ fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
             status: "discharging".to_string(),
         },
         0x1 => BatteryInfo {
-            capacity: 100,
-            status: "full".to_string(),
-        },
-        0x2 => BatteryInfo {
             capacity: min(battery_data * 10 + 5, 100),
             status: "charging".to_string(),
+        },
+        0x2 => BatteryInfo {
+            capacity: 100,
+            status: "full".to_string(),
         },
         0xa | 0xb => BatteryInfo {
             capacity: 0,

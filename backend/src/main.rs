@@ -34,7 +34,7 @@ async fn main() {
         ),
     ]);
 
-    let api = Arc::new(API::new(hidapi::HidApi::new().unwrap()));
+    let api = Arc::new(API {});
     let app = Router::new()
         .route("/controllers", get(controllers))
         .layer(
