@@ -8,12 +8,29 @@ import {
   staticClasses,
 } from "decky-frontend-lib";
 import { useEffect, useState, VFC } from "react";
+import { BiBluetooth } from "react-icons/bi";
+import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters } from "react-icons/fa";
 import { BsController } from "react-icons/bs";
 import { Controller } from "./types";
 import * as backend from "./backend";
+import { IconContext } from "react-icons";
+
+function getBatteryIcon(controller: Controller) {
+  if (controller.capacity <= 0) {
+    return <FaBatteryEmpty />;
+  } else if (controller.capacity <= 25) {
+    return <FaBatteryQuarter />;
+  } else if (controller.capacity <= 50) {
+    return <FaBatteryHalf />;
+  } else if (controller.capacity <= 75) {
+    return <FaBatteryThreeQuarters />;
+  } else {
+    return <FaBatteryFull />;
+  }
+}
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
-  const [controllers, setControllers] = useState<[Controller]>();
+  const [controllers, setControllers] = useState<Controller[]>([]);
   const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
 
   useEffect(() => {
@@ -26,15 +43,21 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
 
   return (
     <PanelSection title="Controllers">
-      {controllers?.map((controller) => (
+      {controllers.map((controller) => (
         <PanelSectionRow key={controller.productId}>
           <div className={FieldWithSeparator}>
             <div className={gamepadDialogClasses.FieldLabelRow}>
               <div className={gamepadDialogClasses.FieldLabel}>
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' } }}>
+                  <BiBluetooth />
+                </IconContext.Provider>
                 {controller.name}
               </div>
               <div className={gamepadDialogClasses.FieldChildren}>
-                {controller.capacity}% ({controller.status})
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' }, size: '2em' }}>
+                  {getBatteryIcon(controller)}
+                </IconContext.Provider>
+                {controller.capacity}%
               </div>
             </div>
           </div>

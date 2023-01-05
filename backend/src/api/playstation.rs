@@ -78,6 +78,7 @@ pub fn parse_dualsense_controller_data(
         vendor_id: device_info.vendor_id(),
         capacity: 0,
         status: "unknown".to_string(),
+        bluetooth,
     };
 
     if !bluetooth && buf[0] == DS_INPUT_REPORT_USB && res == DS_INPUT_REPORT_USB_SIZE {

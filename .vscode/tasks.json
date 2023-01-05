@@ -89,6 +89,17 @@
             "problemMatcher": []
         },
         {
+            "label": "deploy frontend",
+            "detail": "Deploy plugin frontend to deck",
+            "type": "shell",
+            "group": "none",
+            "dependsOn": [
+                "buildfrontend",
+            ],
+            "command": "rsync -azp --delete --rsh='ssh -p ${config:deckport} ${config:deckkey}' dist deck@${config:deckip}:${config:deckdir}/homebrew/plugins/ControllerTools",
+            "problemMatcher": []
+        },
+        {
             "label": "deploy",
             "detail": "Deploy dev plugin to deck",
             "type": "shell",

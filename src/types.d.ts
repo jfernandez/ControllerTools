@@ -19,4 +19,5 @@ export interface Controller {
   vendorId: number;
   capacity: number;
   status: string;
+  bluetooth: boolean;
 }

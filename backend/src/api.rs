@@ -15,6 +15,7 @@ pub struct Controller {
     pub vendor_id: u16,
     pub capacity: u8,
     pub status: String,
+    pub bluetooth: bool,
 }
 
 impl API {
