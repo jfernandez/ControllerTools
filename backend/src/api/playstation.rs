@@ -135,3 +135,17 @@ fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
         },
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::api::playstation::{DualSenseInputreport, DS_INPUT_REPORT_USB_SIZE};
+
+    #[test]
+    fn test_dualsense_input_report_struct_size() {
+        // Common input report size equals the size of the USB report minus 1 byte for the ReportID
+        assert_eq!(
+            std::mem::size_of::<DualSenseInputreport>(),
+            DS_INPUT_REPORT_USB_SIZE - 1
+        );
+    }
+}
