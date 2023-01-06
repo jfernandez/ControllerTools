@@ -1,3 +1,5 @@
+use std::cmp;
+
 use anyhow::Result;
 use hidapi::{DeviceInfo, HidApi};
 use log::error;
@@ -13,8 +15,8 @@ const DS_INPUT_REPORT_BT: u8 = 0x31;
 const DS_INPUT_REPORT_BT_SIZE: usize = 78;
 const DS_INPUT_REPORT_USB: u8 = 0x01;
 const DS_INPUT_REPORT_USB_SIZE: usize = 64;
-const DS_STATUS_BATTERY_CAPACITY: u8 = 0xF;
-const DS_STATUS_CHARGING: u8 = 0xF0;
+const DS_STATUS_BATTERY_CAPACITY: u8 = 0b1111;
+const DS_STATUS_CHARGING: u8 = 0b1111 << 4;
 const DS_STATUS_CHARGING_SHIFT: u8 = 4;
 
 #[repr(C, packed)]
@@ -35,7 +37,7 @@ struct BitfieldUnit<Storage> {
 
 #[repr(C, packed)]
 #[derive(Copy, Clone, Debug, Deserialize)]
-struct DualSenseInputreport {
+struct DualSenseInputReport {
     x: u8,
     y: u8,
     rx: u8,
@@ -81,50 +83,38 @@ pub fn parse_dualsense_controller_data(
         bluetooth,
     };
 
+    let ds_report: DualSenseInputReport;
     if !bluetooth && buf[0] == DS_INPUT_REPORT_USB && res == DS_INPUT_REPORT_USB_SIZE {
-        let ds_report: DualSenseInputreport = bincode::deserialize(&buf[1..])?;
-        let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
-        let charging_status: u8 =
-            (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
-        let battery_status = get_battery_status(charging_status, battery_data);
-        controller.capacity = battery_status.capacity;
-        controller.status = battery_status.status;
+        ds_report = bincode::deserialize(&buf[1..])?;
     } else if bluetooth && buf[0] == DS_INPUT_REPORT_BT && res == DS_INPUT_REPORT_BT_SIZE {
-        let ds_report: DualSenseInputreport = bincode::deserialize(&buf[2..])?;
-        let battery_data: u8 = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
-        let charging_status: u8 =
-            (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
-        let battery_status = get_battery_status(charging_status, battery_data);
-        controller.capacity = battery_status.capacity;
-        controller.status = battery_status.status;
+        ds_report = bincode::deserialize(&buf[2..])?;
     } else {
         error!("Unhandled report ID: {}", buf[0]);
+        return Ok(controller);
     }
+
+    let battery_data = ds_report.status & DS_STATUS_BATTERY_CAPACITY;
+    let charging_status = (ds_report.status & DS_STATUS_CHARGING) >> DS_STATUS_CHARGING_SHIFT;
+    let battery_status = get_battery_status(charging_status, battery_data);
+    controller.capacity = battery_status.capacity;
+    controller.status = battery_status.status;
 
     Ok(controller)
 }
 
 fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
-    fn min(a: u8, b: u8) -> u8 {
-        if a < b {
-            a
-        } else {
-            b
-        }
-    }
-
     match charging_status {
         0x0 => BatteryInfo {
-            capacity: min(battery_data * 10 + 5, 100),
+            capacity: cmp::min(battery_data * 10 + 5, 100),
             status: "discharging".to_string(),
         },
         0x1 => BatteryInfo {
-            capacity: min(battery_data * 10 + 5, 100),
+            capacity: cmp::min(battery_data * 10 + 5, 100),
             status: "charging".to_string(),
         },
         0x2 => BatteryInfo {
-            capacity: 100,
-            status: "full".to_string(),
+            capacity: cmp::min(battery_data * 10 + 5, 100),
+            status: "charging".to_string(),
         },
         0xa | 0xb => BatteryInfo {
             capacity: 0,
@@ -139,13 +129,13 @@ fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
 
 #[cfg(test)]
 mod tests {
-    use crate::api::playstation::{DualSenseInputreport, DS_INPUT_REPORT_USB_SIZE};
+    use crate::api::playstation::{DualSenseInputReport, DS_INPUT_REPORT_USB_SIZE};
 
     #[test]
     fn test_dualsense_input_report_struct_size() {
         // Common input report size equals the size of the USB report minus 1 byte for the ReportID
         assert_eq!(
-            std::mem::size_of::<DualSenseInputreport>(),
+            std::mem::size_of::<DualSenseInputReport>(),
             DS_INPUT_REPORT_USB_SIZE - 1
         );
     }
