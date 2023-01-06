@@ -34,37 +34,38 @@ function getBatteryIcon(controller: Controller) {
   }
 }
 
+async function delayPromise<T>(value: T): Promise<T> {
+  return new Promise<T>(resolve => {
+    setTimeout(() => resolve(value), 275);
+  });
+}
+
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [controllers, setControllers] = useState<Controller[]>([]);
   const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
 
-  const delay = new Promise(resolve => setTimeout(() => resolve(null), 250));
-
   useEffect(() => {
-    const fetchControllers = async () => {
-      const res = await Promise.all([delay, backend.getControllers()]);
-      setControllers(res[1]);
-      setLoading(false);
-    };
-
-    fetchControllers();
-  }, [loading]);
+    backend.getControllers()
+      .then((controllers) => { setControllers(controllers) });
+  }, []);
 
   const refreshButton = (
     <PanelSectionRow>
       <div className={gamepadDialogClasses.Field}>
         <ButtonItem
           layout="below"
-          onClick={() => {
+          onClick={async () => {
             setControllers([]);
             setLoading(true);
+            setControllers(await delayPromise(backend.getControllers()));
+            setLoading(false);
           }}
         >
           Refresh
         </ButtonItem>
       </div>
-    </PanelSectionRow>
+    </PanelSectionRow >
   );
 
   if (controllers.length === 0) {
