@@ -1,4 +1,5 @@
 import {
+  ButtonItem,
   definePlugin,
   gamepadDialogClasses,
   joinClassNames,
@@ -34,16 +35,52 @@ function getBatteryIcon(controller: Controller) {
 }
 
 const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
+  const [loading, setLoading] = useState<boolean>(true);
   const [controllers, setControllers] = useState<Controller[]>([]);
   const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
 
+  const delay = new Promise(resolve => setTimeout(() => resolve(null), 250));
+
   useEffect(() => {
     const fetchControllers = async () => {
-      setControllers(await backend.getControllers());
+      const res = await Promise.all([delay, backend.getControllers()]);
+      setControllers(res[1]);
+      setLoading(false);
     };
 
     fetchControllers();
-  }, []);
+  }, [loading]);
+
+  const refreshButton = (
+    <PanelSectionRow>
+      <div className={gamepadDialogClasses.Field}>
+        <ButtonItem
+          layout="below"
+          onClick={() => {
+            setControllers([]);
+            setLoading(true);
+          }}
+        >
+          Refresh
+        </ButtonItem>
+      </div>
+    </PanelSectionRow>
+  );
+
+  if (controllers.length === 0) {
+    return <PanelSection title="Controllers">
+      <PanelSectionRow>
+        <div className={FieldWithSeparator}>
+          <div className={gamepadDialogClasses.FieldLabelRow}>
+            <div className={gamepadDialogClasses.FieldLabel}>
+              {loading ? 'Loading...' : 'No controllers found'}
+            </div>
+          </div>
+        </div>
+      </PanelSectionRow>
+      {refreshButton}
+    </PanelSection>;
+  }
 
   return (
     <PanelSection title="Controllers">
@@ -67,6 +104,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
           </div>
         </PanelSectionRow>
       ))}
+      {refreshButton}
     </PanelSection >
   );
 };
