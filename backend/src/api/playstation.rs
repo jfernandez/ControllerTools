@@ -75,7 +75,7 @@ pub fn parse_dualsense_controller_data(
     let mut buf = [0u8; DS_INPUT_REPORT_BT_SIZE];
     let res = device.read(&mut buf[..])?;
     let mut controller = Controller {
-        name: "PlayStation DualSense".to_string(),
+        name: "DualSense".to_string(),
         product_id: device_info.product_id(),
         vendor_id: device_info.vendor_id(),
         capacity: 0,

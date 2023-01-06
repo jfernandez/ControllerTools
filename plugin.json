@@ -1,10 +1,16 @@
 {
-  "name": "ControllerTools",
-  "author": "Jose Fernandez",
-  "flags": ["debug", "_root"],
+  "name": "Controller Tools",
+  "author": "Jose Fernandez, Ludovic Galibert",
+  "flags": [
+    "debug"
+  ],
   "publish": {
-    "tags": ["template", "root"],
-    "description": "Decky example plugin.",
+    "tags": [
+      "controller",
+      "gamepad",
+      "playstation"
+    ],
+    "description": "The missing game controller menu. Displays the current battery % and charging status. Supports: PS5 DualSense",
     "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/PluginLoader"
   }
 }

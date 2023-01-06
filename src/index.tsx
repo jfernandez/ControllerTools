@@ -10,7 +10,7 @@ import {
 } from "decky-frontend-lib";
 import { useEffect, useState, VFC } from "react";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
-import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters } from "react-icons/fa";
+import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation } from "react-icons/fa";
 import { BsController, BsBatteryCharging } from "react-icons/bs";
 import { Controller } from "./types";
 import * as backend from "./backend";
@@ -31,6 +31,14 @@ function getBatteryIcon(controller: Controller) {
     return <FaBatteryThreeQuarters />;
   } else {
     return <FaBatteryFull />;
+  }
+}
+
+function getVendorIcon(controller: Controller) {
+  if (controller.vendorId === 1356) {
+    return <FaPlaystation />;
+  } else {
+    return <BsController />;
   }
 }
 
@@ -90,8 +98,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
           <div className={FieldWithSeparator}>
             <div className={gamepadDialogClasses.FieldLabelRow}>
               <div className={gamepadDialogClasses.FieldLabel}>
-                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' } }}>
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '10px' } }}>
                   {controller.bluetooth ? <BiBluetooth /> : <BiUsb />}
+                </IconContext.Provider>
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' } }}>
+                  {getVendorIcon(controller)}
                 </IconContext.Provider>
                 {controller.name}
               </div>
