@@ -10,6 +10,7 @@ import {
 } from "decky-frontend-lib";
 import { useEffect, useState, VFC } from "react";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
+import { RiSwitchLine } from "react-icons/ri";
 import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation } from "react-icons/fa";
 import { BsController, BsBatteryCharging } from "react-icons/bs";
 import { Controller } from "./types";
@@ -34,11 +35,14 @@ function getBatteryIcon(controller: Controller) {
   }
 }
 
-function getVendorIcon(controller: Controller) {
-  if (controller.vendorId === 1356) {
-    return <FaPlaystation />;
-  } else {
-    return <BsController />;
+function getVendorIcon(controller: Controller): JSX.Element {
+  switch (controller.vendorId) {
+    case 1356:
+      return <FaPlaystation />;
+    case 1406:
+      return <RiSwitchLine />;
+    default:
+      return <BsController />;
   }
 }
 
@@ -101,7 +105,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
                 <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '10px' } }}>
                   {controller.bluetooth ? <BiBluetooth /> : <BiUsb />}
                 </IconContext.Provider>
-                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' } }}>
+                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '5px' } }}>
                   {getVendorIcon(controller)}
                 </IconContext.Provider>
                 {controller.name}

@@ -10,9 +10,9 @@ use super::Controller;
 pub const DS_VENDOR_ID: u16 = 0x054c;
 
 // Dualshock4 product ID before playstation update 5.50
-pub const DS4_OLD_PRODUCT_ID:u16 = 0x05c4;
+pub const DS4_OLD_PRODUCT_ID: u16 = 0x05c4;
 // Dualshock4 product ID changed after playstation update 5.50
-pub const DS4_NEW_PRODUCT_ID:u16 = 0x09cc;
+pub const DS4_NEW_PRODUCT_ID: u16 = 0x09cc;
 
 const DS4_INPUT_REPORT_USB: u8 = 0x01;
 const DS4_INPUT_REPORT_USB_SIZE: usize = 64;
@@ -79,44 +79,44 @@ struct DualShock4InputReportCommon {
     rx: u8,
     ry: u8,
     buttons: [u8; 3usize],
-	z: u8,
+    z: u8,
     rz: u8,
     sensor_timestamp: u16,
-	sensor_temperature: u8,
+    sensor_temperature: u8,
     gyro: [u16; 3usize],
     accel: [u16; 3usize],
-	reserved2: [u8; 5usize],
-	status: [u8; 2usize],
-	reserved3: u8
+    reserved2: [u8; 5usize],
+    status: [u8; 2usize],
+    reserved3: u8,
 }
 
 #[repr(C, packed)]
 #[derive(Copy, Clone, Debug, Deserialize)]
 struct Dualshock4InputReportBT {
-	report_id: u8, /* 0x11 */
-	reserved: [u8; 2usize],
+    report_id: u8, /* 0x11 */
+    reserved: [u8; 2usize],
     common: DualShock4InputReportCommon,
-	num_touch_reports: u8,
+    num_touch_reports: u8,
     touch_reports: [DualShock4TouchReport; 4usize],
-	reserved2: [u8; 2usize],
-	crc32: u32
+    reserved2: [u8; 2usize],
+    crc32: u32,
 }
 
 #[repr(C, packed)]
 #[derive(Copy, Clone, Debug, Deserialize)]
 struct Dualshock4InputReportUSB {
-	report_id: u8, /* 0x01 */
-	common: DualShock4InputReportCommon,
-	num_touch_reports: u8,
-	touch_reports: [DualShock4TouchReport; 3usize],
-	reserved: [u8; 3usize]
+    report_id: u8, /* 0x01 */
+    common: DualShock4InputReportCommon,
+    num_touch_reports: u8,
+    touch_reports: [DualShock4TouchReport; 3usize],
+    reserved: [u8; 3usize],
 }
 
 #[repr(C, packed)]
 #[derive(Copy, Clone, Debug, Deserialize)]
 struct DualShock4TouchReport {
     timestamp: u8,
-    points: [DualShock4TouchPoint; 2usize]
+    points: [DualShock4TouchPoint; 2usize],
 }
 
 #[repr(C, packed)]
