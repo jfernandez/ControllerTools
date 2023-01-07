@@ -1,10 +1,9 @@
 mod api;
 
-use std::{fs::File, net::SocketAddr, sync::Arc};
+use std::{fs::File, net::SocketAddr};
 
-use api::{Controller, API};
+use api::Controller;
 use axum::{
-    extract::State,
     http::{HeaderValue, Method, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
@@ -39,16 +38,12 @@ async fn main() {
         ),
     ]);
 
-    let api = Arc::new(API {});
-    let app = Router::new()
-        .route("/controllers", get(controllers))
-        .layer(
-            CorsLayer::new()
-                .allow_origin("https://steamloopback.host".parse::<HeaderValue>().unwrap())
-                .allow_headers(Any)
-                .allow_methods([Method::GET, Method::POST]),
-        )
-        .with_state(api);
+    let app = Router::new().route("/controllers", get(controllers)).layer(
+        CorsLayer::new()
+            .allow_origin("https://steamloopback.host".parse::<HeaderValue>().unwrap())
+            .allow_headers(Any)
+            .allow_methods([Method::GET, Method::POST]),
+    );
 
     // run it
     let addr = SocketAddr::from(([127, 0, 0, 1], PORT));
@@ -59,9 +54,9 @@ async fn main() {
         .unwrap();
 }
 
-async fn controllers(State(api): State<Arc<API>>) -> Result<Json<Vec<Controller>>, AppError> {
+async fn controllers() -> Result<Json<Vec<Controller>>, AppError> {
     // Spawn a blocking task to get the controllers. This is because `api.get_controllers()` is a blocking API
-    let controllers = tokio::task::spawn_blocking(move || api.get_controllers()).await??;
+    let controllers = tokio::task::spawn_blocking(move || api::get_controllers()).await??;
     Ok(Json(controllers))
 }
 
