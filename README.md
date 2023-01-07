@@ -1,4 +1,4 @@
-# Power Tools
+# Controller Tools
 ![plugin_demo](./assets/decky-loader-store-cover.png)
 
 Steam Deck game controller plugin for [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader). Displays the connection type (Bluetooth, USB), current battery %, and charging status. 
