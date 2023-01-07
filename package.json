@@ -1,7 +1,7 @@
 {
   "name": "ControllerTools",
   "version": "0.1.0",
-  "description": "A template to quickly create decky plugins from scratch, based on TypeScript and webpack",
+  "description": "The missing game controller menu. Displays the current battery % and charging status",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
@@ -9,21 +9,36 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SteamDeckHomebrew/decky-plugin-template.git"
+    "url": "git+https://github.com/alphamercury/ControllerTools.git"
   },
   "keywords": [
     "decky",
     "plugin",
-    "plugin-template",
+    "controller",
+    "gamepad",
+    "playstation",
+    "xbox",
+    "nintendo",
     "steam-deck",
     "deck"
   ],
-  "author": "Jonas Dellinger <jonas@dellinger.dev>",
-  "license": "BSD-3-Clause",
-  "bugs": {
-    "url": "https://github.com/SteamDeckHomebrew/decky-plugin-template/issues"
+  "author": {
+    "name": "Jose Fernandez",
+    "email": "jose@alphamercury.io",
+    "url": "https://github.com/jfernandez"
   },
-  "homepage": "https://github.com/SteamDeckHomebrew/decky-plugin-template#readme",
+  "contributors": [
+    {
+      "name": "Ludovic Galibert",
+      "email": "ludo@alphamercury.io",
+      "url": "https://github.com/ludokx"
+    }
+  ],
+  "license": "GPLv3",
+  "bugs": {
+    "url": "https://github.com/alphamercury/ControllerTools/issues"
+  },
+  "homepage": "https://github.com/alphamercury/ControllerTools#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.1.0",
     "@rollup/plugin-json": "^4.1.0",
