@@ -1,0 +1,19 @@
+name: Build Backend
+
+on:
+  push:
+    branches: main
+    paths:
+      - 'backend/**'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3.2.0
+      - name: Build docker image
+        run: ./backend/build-docker-image.sh
+        shell: bash
+      - name: Run docker image
+        run: ./backend/run-docker-image.sh
