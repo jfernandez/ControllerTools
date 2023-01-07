@@ -18,17 +18,22 @@ use tower_http::cors::{Any, CorsLayer};
 
 const PORT: u16 = 33220;
 
+#[cfg(debug_assertions)]
+const LOG_LEVEL: LevelFilter = LevelFilter::Debug;
+#[cfg(not(debug_assertions))]
+const LOG_LEVEL: LevelFilter = LevelFilter::Info;
+
 #[tokio::main]
 async fn main() {
     let _ = CombinedLogger::init(vec![
         TermLogger::new(
-            LevelFilter::Debug,
+            LOG_LEVEL,
             Config::default(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
         ),
         WriteLogger::new(
-            LevelFilter::Debug,
+            LOG_LEVEL,
             Config::default(),
             File::create("/tmp/controller-tools.log").unwrap(),
         ),
