@@ -1,5 +1,6 @@
 mod nintendo;
 mod playstation;
+mod xbox;
 use anyhow::Result;
 use hidapi::HidApi;
 use log::debug;
@@ -52,6 +53,43 @@ impl API {
             if let Some(bt_controller) = bt_controller {
                 let controller = nintendo::parse_pro_controller_data(&bt_controller, &hidapi)?;
                 controllers.push(controller);
+            }
+        }
+
+        // for some reason HidApi's list_devices() is returning multiple instances of the same controller
+        // so dedupe by serial number
+        let mut xbox_controllers: Vec<_> = hidapi
+            .device_list()
+            .filter(|device_info| {
+                device_info.vendor_id() == xbox::MS_VENDOR_ID
+                    && (device_info.product_id() == xbox::XBOX_CONTROLLER_PRODUCT_ID
+                        || device_info.product_id()
+                            == xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID
+                        || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID)
+            })
+            .collect();
+        xbox_controllers.dedup_by(|a, b| a.serial_number() == b.serial_number());
+        for device_info in xbox_controllers {
+            match (device_info.vendor_id(), device_info.product_id()) {
+                (xbox::MS_VENDOR_ID, xbox::XBOX_CONTROLLER_PRODUCT_ID) => {
+                    debug!("!Found Xbox One S controller: {:?}", device_info);
+                    let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+
+                    controllers.push(controller);
+                }
+                (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID) => {
+                    debug!("Found Xbox Series X/S controller: {:?}", device_info);
+                    let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+
+                    controllers.push(controller);
+                }
+                (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID) => {
+                    debug!("Found Xbox Series X/S controller: {:?}", device_info);
+                    let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+
+                    controllers.push(controller);
+                }
+                _ => {}
             }
         }
 

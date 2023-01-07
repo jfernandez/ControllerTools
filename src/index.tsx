@@ -11,7 +11,7 @@ import {
 import { useEffect, useState, VFC } from "react";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
 import { RiSwitchLine } from "react-icons/ri";
-import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation } from "react-icons/fa";
+import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation, FaXbox } from "react-icons/fa";
 import { BsController, BsBatteryCharging } from "react-icons/bs";
 import { Controller } from "./types";
 import * as backend from "./backend";
@@ -41,6 +41,8 @@ function getVendorIcon(controller: Controller): JSX.Element {
       return <FaPlaystation />;
     case 1406:
       return <RiSwitchLine />;
+    case 1118:
+      return <FaXbox />
     default:
       return <BsController />;
   }
@@ -110,12 +112,15 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
                 </IconContext.Provider>
                 {controller.name}
               </div>
-              <div className={gamepadDialogClasses.FieldChildren}>
-                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' }, size: '2em' }}>
-                  {getBatteryIcon(controller)}
-                </IconContext.Provider>
-                {controller.capacity}%
-              </div>
+              {
+                (controller.capacity > 0 || controller.status !== "unknown") &&
+                <div className={gamepadDialogClasses.FieldChildren}>
+                  <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' }, size: '2em' }}>
+                    {getBatteryIcon(controller)}
+                  </IconContext.Provider>
+                  {controller.capacity}%
+                </div>
+              }
             </div>
           </div>
         </PanelSectionRow>
