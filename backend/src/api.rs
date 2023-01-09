@@ -5,6 +5,8 @@ use anyhow::Result;
 use hidapi::HidApi;
 use log::debug;
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
+use udev::Enumerator;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -71,15 +73,14 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
             (xbox::MS_VENDOR_ID, xbox::XBOX_CONTROLLER_PRODUCT_ID) => {
                 debug!("!Found Xbox One S controller: {:?}", device_info);
                 let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
-
                 controllers.push(controller);
             }
-            (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID) => {
-                debug!("Found Xbox Series X/S controller: {:?}", device_info);
-                let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+            // (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID) => {
+            //     debug!("Found Xbox Series X/S controller: {:?}", device_info);
+            //     let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
 
-                controllers.push(controller);
-            }
+            //     controllers.push(controller);
+            // }
             (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID) => {
                 debug!("Found Xbox Series X/S controller: {:?}", device_info);
                 let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
@@ -116,5 +117,35 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
             _ => {}
         }
     }
+
+    // for Xbox over USB, hidapi-rs is not finding controllers so fall back to using udev
+    let mut enumerator = Enumerator::new()?;
+    enumerator.match_subsystem("usb")?;
+    for device in enumerator.scan_devices()? {
+        let device_vendor_id = match device.property_value("ID_VENDOR_ID") {
+            Some(val) => val.to_str().unwrap(),
+            None => "0",
+        };
+        let device_product_id = match device.property_value("ID_MODEL_ID") {
+            Some(val) => val.to_str().unwrap(),
+            None => "0",
+        };
+        if device_vendor_id == xbox::MS_VENDOR_ID_STR {
+            if device_product_id == xbox::XBOX_CONTROLLER_USB_PRODUCT_ID_STR {
+                debug!("Found Xbox One S controller over USB");
+                controllers.push(xbox::get_xbox_controller(
+                    xbox::XBOX_CONTROLLER_USB_PRODUCT_ID,
+                    false,
+                )?)
+            } else if device_product_id == xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID_STR {
+                debug!("Found Xbox Series X/S controller over USB");
+                controllers.push(xbox::get_xbox_controller(
+                    xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID,
+                    false,
+                )?)
+            }
+        }
+    }
+
     return Ok(controllers);
 }
