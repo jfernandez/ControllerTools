@@ -99,7 +99,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
 
   return (
     <PanelSection title="Controllers">
-      {controllers.map((controller) => (
+      {controllers.sort((a, b) => a.name.localeCompare(b.name)).map((controller) => (
         <PanelSectionRow key={controller.productId}>
           <div className={FieldWithSeparator}>
             <div className={gamepadDialogClasses.FieldLabelRow}>
@@ -118,7 +118,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
                   <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' }, size: '2em' }}>
                     {getBatteryIcon(controller)}
                   </IconContext.Provider>
-                  {controller.capacity}%
+                  {
+                    // since we don't have battery level yet for Xbox, don't show capactiy for the MS vendor
+                    controller.vendorId != 1118 &&
+                    <span>{controller.capacity}%</span>
+                  }
                 </div>
               }
             </div>
