@@ -5,7 +5,6 @@ use anyhow::Result;
 use hidapi::HidApi;
 use log::debug;
 use serde::{Deserialize, Serialize};
-use std::ffi::OsStr;
 use udev::Enumerator;
 
 #[derive(Debug, Serialize, Deserialize)]
