@@ -3,7 +3,7 @@ services:
     entrypoint:
     - sleep
     - infinity
-    image: ghcr.io/alphamercury/holo-toolchain-rust:latest
+    image: arm64v8/rust:latest
     platform: linux/arm64/v8
     init: true
     volumes:
