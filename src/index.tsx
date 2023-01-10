@@ -115,14 +115,14 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
               {
                 (controller.capacity > 0 || controller.status !== "unknown") &&
                 <div className={gamepadDialogClasses.FieldChildren}>
-                  <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '4px' }, size: '2em' }}>
-                    {getBatteryIcon(controller)}
-                  </IconContext.Provider>
                   {
                     // since we don't have battery level yet for Xbox, don't show capactiy for the MS vendor
                     controller.vendorId != 1118 &&
-                    <span>{controller.capacity}%</span>
+                    <span style={{ display: "inline-block", textAlign: "right", }}>{controller.capacity}%</span>
                   }
+                  <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginLeft: "6px" }, size: '2em' }}>
+                    {getBatteryIcon(controller)}
+                  </IconContext.Provider>
                 </div>
               }
             </div>
