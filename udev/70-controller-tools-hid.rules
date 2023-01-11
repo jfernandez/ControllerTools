@@ -1,0 +1,9 @@
+# This is a sample udev file for HIDAPI devices which lets unprivileged
+# users who are physically present at the system (not remote users) access
+# HID devices.
+
+# HIDAPI/hidraw
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", TAG+="uaccess"
+
+# Once done, optionally rename this file for your application, and drop it into
+# /etc/udev/rules.d/
