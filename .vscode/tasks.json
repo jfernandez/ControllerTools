@@ -96,7 +96,7 @@
             "dependsOn": [
                 "buildfrontend",
             ],
-            "command": "rsync -azp --delete --rsh='ssh -p ${config:deckport} ${config:deckkey}' dist deck@${config:deckip}:${config:deckdir}/homebrew/plugins/ControllerTools",
+            "command": "rsync -azp --delete --rsh='ssh -p ${config:deckport} ${config:deckkey}' dist deck@${config:deckip}:${config:deckdir}/homebrew/plugins/ControllerTools && DECKIP=${config:deckip} node scripts/reload_frontend.js",
             "problemMatcher": []
         },
         {
