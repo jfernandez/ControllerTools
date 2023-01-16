@@ -32,15 +32,10 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
         })
         .collect();
 
-    if nintendo_pro_controllers.len() == 1 {
+    if nintendo_pro_controllers.len() == 1 || nintendo_pro_controllers.len() == 2 {
         // When we only get one device, we know it's connected via Bluetooth.
-        let controller =
-            nintendo::parse_pro_controller_data(&nintendo_pro_controllers[0], &hidapi)?;
-        controllers.push(controller);
-    } else if nintendo_pro_controllers.len() == 2 {
         // When we get two devices, we know it's connected only via USB. Both will report the same data, so we'll just return the first one.
-        let controller =
-            nintendo::parse_pro_controller_data(&nintendo_pro_controllers[0], &hidapi)?;
+        let controller = nintendo::parse_pro_controller_data(nintendo_pro_controllers[0], &hidapi)?;
         controllers.push(controller);
     } else if nintendo_pro_controllers.len() == 3 {
         // When we get three devices, we know it's connected via USB + Bluetooth.
@@ -50,7 +45,7 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
             .find(|device_info| device_info.interface_number() == -1);
 
         if let Some(bt_controller) = bt_controller {
-            let controller = nintendo::parse_pro_controller_data(&bt_controller, &hidapi)?;
+            let controller = nintendo::parse_pro_controller_data(bt_controller, &hidapi)?;
             controllers.push(controller);
         }
     }
@@ -71,7 +66,7 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
         match (device_info.vendor_id(), device_info.product_id()) {
             (xbox::MS_VENDOR_ID, xbox::XBOX_CONTROLLER_PRODUCT_ID) => {
                 debug!("!Found Xbox One S controller: {:?}", device_info);
-                let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+                let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
                 controllers.push(controller);
             }
             // (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID) => {
@@ -82,7 +77,7 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
             // }
             (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID) => {
                 debug!("Found Xbox Series X/S controller: {:?}", device_info);
-                let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+                let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
 
                 controllers.push(controller);
             }
@@ -95,21 +90,21 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
             (playstation::DS_VENDOR_ID, playstation::DS_PRODUCT_ID) => {
                 debug!("Found DualSense controller: {:?}", device_info);
                 let controller =
-                    playstation::parse_dualsense_controller_data(&device_info, &hidapi)?;
+                    playstation::parse_dualsense_controller_data(device_info, &hidapi)?;
 
                 controllers.push(controller);
             }
             (playstation::DS_VENDOR_ID, playstation::DS4_NEW_PRODUCT_ID) => {
                 debug!("Found new DualShock 4 controller: {:?}", device_info);
                 let controller =
-                    playstation::parse_dualshock_controller_data(&device_info, &hidapi)?;
+                    playstation::parse_dualshock_controller_data(device_info, &hidapi)?;
 
                 controllers.push(controller);
             }
             (playstation::DS_VENDOR_ID, playstation::DS4_OLD_PRODUCT_ID) => {
                 debug!("Found old DualShock 4 controller: {:?}", device_info);
                 let controller =
-                    playstation::parse_dualshock_controller_data(&device_info, &hidapi)?;
+                    playstation::parse_dualshock_controller_data(device_info, &hidapi)?;
 
                 controllers.push(controller);
             }
@@ -146,5 +141,5 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
         }
     }
 
-    return Ok(controllers);
+    Ok(controllers)
 }

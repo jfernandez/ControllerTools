@@ -29,7 +29,7 @@ pub fn get_xbox_controller(product_id: u16, bluetooth: bool) -> Result<Controlle
         } else {
             "Xbox One S".to_string()
         },
-        product_id: product_id,
+        product_id,
         vendor_id: MS_VENDOR_ID,
         capacity: if bluetooth { 0 } else { 100 }, // for now for USB, "fake" it and set capacity to 100 as charging
         status: if bluetooth {

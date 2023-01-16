@@ -56,7 +56,7 @@ async fn main() {
 
 async fn controllers() -> Result<Json<Vec<Controller>>, AppError> {
     // Spawn a blocking task to get the controllers. This is because `api.get_controllers()` is a blocking API
-    let controllers = tokio::task::spawn_blocking(move || api::get_controllers()).await??;
+    let controllers = tokio::task::spawn_blocking(api::get_controllers).await??;
     Ok(Json(controllers))
 }
 

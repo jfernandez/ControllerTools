@@ -240,7 +240,11 @@ fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
             capacity: 0,
             status: "not-charging".to_string(),
         },
-        0xf | _ => BatteryInfo {
+        0xf => BatteryInfo {
+            capacity: 0,
+            status: "unknown".to_string(),
+        },
+        _ => BatteryInfo {
             capacity: 0,
             status: "unknown".to_string(),
         },
