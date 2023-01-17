@@ -7,8 +7,8 @@ Steam Deck game controller plugin for [Decky Loader](https://github.com/SteamDec
 * PlayStation DualSense
 * Playstation DualShock 4
 * Nintendo Switch Pro Controller
-* Xbox Series X|S Controller (limited support)
-* Xbox One Controller (limited support)
+* Xbox Series X|S Controller
+* Xbox One Controller
 
 ## Installation
 1. Install [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader).
