@@ -1,6 +1,6 @@
 {
   "name": "ControllerTools",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "The missing game controller menu. Displays the current battery % and charging status",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",

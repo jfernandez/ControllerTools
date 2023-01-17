@@ -57,6 +57,7 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
         .filter(|device_info| {
             device_info.vendor_id() == xbox::MS_VENDOR_ID
                 && (device_info.product_id() == xbox::XBOX_CONTROLLER_PRODUCT_ID
+                    || device_info.product_id() == xbox::XBOX_ONE_S_LATEST_FW_PRODUCT_ID
                     || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID
                     || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID)
         })
@@ -69,16 +70,15 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
                 let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
                 controllers.push(controller);
             }
-            // (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID) => {
-            //     debug!("Found Xbox Series X/S controller: {:?}", device_info);
-            //     let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+            (xbox::MS_VENDOR_ID, xbox::XBOX_ONE_S_LATEST_FW_PRODUCT_ID) => {
+                debug!("Found Xbox One S controller: {:?}", device_info);
+                let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
 
-            //     controllers.push(controller);
-            // }
+                controllers.push(controller);
+            }
             (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID) => {
                 debug!("Found Xbox Series X/S controller: {:?}", device_info);
                 let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
-
                 controllers.push(controller);
             }
             _ => {}
