@@ -149,6 +149,7 @@ pub fn parse_dualshock_controller_data(
         capacity: 0,
         status: "unknown".to_string(),
         bluetooth,
+        hid_device_path: device_info.path().to_str()?.to_string(),
     };
     let mut buf = vec![0u8; DS4_INPUT_REPORT_BT_SIZE];
     let res = device.read(&mut buf[..])?;
@@ -201,6 +202,7 @@ pub fn parse_dualsense_controller_data(
         capacity: 0,
         status: "unknown".to_string(),
         bluetooth,
+        hid_device_path: device_info.path().to_str()?.to_string(),
     };
 
     let ds_report: DualSenseInputReport;

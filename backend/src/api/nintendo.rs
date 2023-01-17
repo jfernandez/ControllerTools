@@ -33,6 +33,7 @@ pub fn parse_pro_controller_data(device_info: &DeviceInfo, hidapi: &HidApi) -> R
         capacity: 0,
         status: "Unknown".to_string(),
         bluetooth: false,
+        hid_device_path: device_info.path().to_str()?.to_string(),
     };
 
     let device = device_info.open_device(hidapi)?;

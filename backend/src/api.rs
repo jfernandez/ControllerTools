@@ -1,13 +1,18 @@
+mod gulikit;
 mod nintendo;
 mod playstation;
 mod xbox;
 use anyhow::Result;
 use hidapi::HidApi;
-use log::debug;
+use log::{debug, error};
 use serde::{Deserialize, Serialize};
 use udev::Enumerator;
 
-#[derive(Debug, Serialize, Deserialize)]
+use std::fs;
+use std::path::Path;
+use std::slice::IterMut;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Controller {
     pub name: String,
@@ -16,6 +21,57 @@ pub struct Controller {
     pub capacity: u8,
     pub status: String,
     pub bluetooth: bool,
+    pub hid_device_path: String,
+}
+
+fn get_battery_capacity(device_path: &Path) -> Result<u8> {
+    let s = fs::read_dir([device_path.to_str().unwrap(), "/device/power_supply"].join("/"))?
+        .next()
+        .unwrap()?;
+    debug!("Power supply path: {:?}", s);
+    let capacity_string = fs::read_to_string([s.path().to_str().unwrap(), "capacity"].join("/"));
+    let capacity: u8 = capacity_string?.trim().parse()?;
+    debug!("Found battery capacity: {}", capacity);
+    return Ok(capacity);
+}
+
+fn get_missing_battery_capacity(controllers: IterMut<Controller>) -> Result<()> {
+    let mut bt_enum = Enumerator::new()?;
+    // bt_enum.match_subsystem("hid")?;
+    bt_enum.match_subsystem("hidraw")?;
+    for controller in controllers {
+        if controller.capacity == 0 && controller.hid_device_path != "unknown".to_string() {
+            for device in bt_enum.scan_devices()? {
+                if device.devnode().unwrap().to_str().unwrap() == controller.hid_device_path {
+                    debug!(
+                        "Trying to get battery capacity for controller: {}",
+                        controller.name
+                    );
+                    let device_path = device.syspath();
+                    match get_battery_capacity(device_path) {
+                        Ok(capacity) => {
+                            controller.capacity = capacity;
+                            if controller.status == "unknown".to_string() {
+                                controller.status = "discharging".to_string();
+                            }
+                        }
+                        Err(err) => error!("Error getting capacity: {:?}", err),
+                    }
+                    // let capacity = get_battery_capacity(device_path)?;
+                    // controller.capacity = capacity;
+                    // if controller.status == "unknown".to_string() {
+                    //     controller.status = "discharging".to_string();
+                    // }
+                }
+            }
+        } else {
+            debug!(
+                "Capacity known for controller {}: {} ({})",
+                controller.name, controller.capacity, controller.status
+            );
+        }
+    }
+    return Ok(());
 }
 
 pub fn get_controllers() -> Result<Vec<Controller>> {
@@ -90,6 +146,28 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
         }
     }
 
+    let mut gulikit_controllers: Vec<_> = hidapi
+        .device_list()
+        .filter(|device_info| {
+            device_info.vendor_id() == gulikit::VENDOR_ID
+                && device_info.product_id() == gulikit::PRODUCT_ID
+        })
+        .collect();
+    gulikit_controllers.dedup_by(|a, b| a.serial_number() == b.serial_number());
+
+    for device_info in gulikit_controllers {
+        match (device_info.vendor_id(), device_info.product_id()) {
+            (gulikit::VENDOR_ID, gulikit::PRODUCT_ID) => {
+                if device_info.interface_number() == -1 {
+                    debug!("Found GuliKit controller: {:?}", device_info);
+                    let controller = gulikit::parse_controller_data(&device_info, &hidapi)?;
+                    controllers.push(controller);
+                }
+            }
+            _ => {}
+        }
+    }
+
     for device_info in hidapi.device_list() {
         match (device_info.vendor_id(), device_info.product_id()) {
             (playstation::DS_VENDOR_ID, playstation::DS_PRODUCT_ID) => {
@@ -144,6 +222,48 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
                 )?)
             }
         }
+    }
+
+    // let mut bt_enum = Enumerator::new()?;
+    // // bt_enum.match_subsystem("hid")?;
+    // bt_enum.match_subsystem("hidraw")?;
+    // bt_enum.match_subsystem("bluetooth")?;
+    // let udev_devices = ;
+    // for device in bt_enum.scan_devices()? {
+    //     if device.devnode().unwrap().to_str().unwrap() == test_devpath {
+    //         let capacity = get_battery_capacity(device.syspath())?;
+    //         // let p = Path::new(test_devpath);
+    //         // println!("Found {} ==> {:?}", test_devpath, device.syspath());
+    //         // let s = fs::read_dir(
+    //         //     [device.syspath().to_str().unwrap(), "/device/power_supply"].join("/"),
+    //         // )?
+    //         // .next()
+    //         // .unwrap()?;
+    //         // println!("Got filename {:?}", s.path().to_str());
+    //         // let capacity_string =
+    //         //     fs::read_to_string([s.path().to_str().unwrap(), "capacity"].join("/"));
+    //         // let capacity: u8 = capacity_string?.trim().parse()?;
+    //         // println!("!!battery capacity: {:?}", capacity);
+    //     }
+    // }
+    // controllers = controllers.to_vec();
+    // unsafe {
+    //     for controller in controllers.iter_mut() {
+    //         if controller.capacity == 0 && controller.hid_device_path != "unknown".to_string() {
+    //             for device in bt_enum.scan_devices()? {
+    //                 if device.devnode().unwrap().to_str().unwrap() == controller.hid_device_path {
+    //                     let device_path = device.syspath();
+    //                     let capacity = get_battery_capacity(device_path)?;
+    //                     controller.capacity = capacity;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
+    match get_missing_battery_capacity(controllers.iter_mut()) {
+        Ok(_) => {}
+        Err(_) => error!("Failed to get missing battery status"),
     }
 
     return Ok(controllers);

@@ -117,7 +117,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
                 <div className={gamepadDialogClasses.FieldChildren}>
                   {
                     // since we don't have battery level yet for Xbox, don't show capactiy for the MS vendor
-                    controller.vendorId != 1118 &&
+                    // controller.vendorId != 1118 &&
                     <span style={{ display: "inline-block", textAlign: "right", }}>{controller.capacity}%</span>
                   }
                   <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginLeft: "6px" }, size: '2em' }}>
