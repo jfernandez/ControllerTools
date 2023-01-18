@@ -10,6 +10,7 @@ import {
 } from "decky-frontend-lib";
 import { useEffect, useState, VFC } from "react";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
+import { SiStadia } from "react-icons/si";
 import { RiSwitchLine } from "react-icons/ri";
 import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation, FaXbox } from "react-icons/fa";
 import { BsController, BsBatteryCharging } from "react-icons/bs";
@@ -43,6 +44,8 @@ function getVendorIcon(controller: Controller): JSX.Element {
       return <RiSwitchLine />;
     case 1118:
       return <FaXbox />
+    case 6353: // 0x18D1 = Google
+      return <SiStadia />
     default:
       return <BsController />;
   }
