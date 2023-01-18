@@ -1,9 +1,10 @@
-# This is a sample udev file for HIDAPI devices which lets unprivileged
-# users who are physically present at the system (not remote users) access
-# HID devices.
+# This is a udev file for local development on a Linux machine.
+# Without this your user may get permissioned denied errors when trying to read from hidapi.
+# This is not needed for the Steam Deck because the deck user appears to have access r/w access to all controllers we've tested.
+# Thus this file is not included in the plugin package.
 
-# HIDAPI/hidraw
+# Add a copy of this line for each vendor/product ID you want to test locally
 KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", TAG+="uaccess"
 
-# Once done, optionally rename this file for your application, and drop it into
+# Drop it into
 # /etc/udev/rules.d/
