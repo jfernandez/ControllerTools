@@ -1,3 +1,5 @@
+mod bluetooth;
+mod generic;
 mod nintendo;
 mod playstation;
 mod xbox;
@@ -110,6 +112,19 @@ pub fn get_controllers() -> Result<Vec<Controller>> {
             }
             _ => {}
         }
+    }
+
+    let mut unknown_controllers: Vec<_> = hidapi
+        .device_list()
+        .filter(|device_info| {
+            device_info.interface_number() == -1
+                && !generic::IGNORED_VENDORS.contains(&device_info.vendor_id())
+        })
+        .collect();
+    unknown_controllers.dedup_by(|a, b| a.path() == b.path());
+    for device_info in unknown_controllers {
+        let controller = generic::get_controller_data(device_info, &hidapi)?;
+        controllers.push(controller);
     }
 
     // for Xbox over USB, hidapi-rs is not finding controllers so fall back to using udev
