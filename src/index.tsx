@@ -60,7 +60,7 @@ async function delayPromise<T>(value: T): Promise<T> {
 }
 
 const Content: VFC<{ serverAPI: ServerAPI }> = () => {
-  const [settings, setSettings] = useState<Settings>({ notifications: true });
+  const [settings, setSettings] = useState<Settings>({ notifications: true, debug: false });
   const [loading, setLoading] = useState<boolean>(false);
   const [controllers, setControllers] = useState<Controller[]>([]);
   const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
@@ -101,8 +101,21 @@ const Content: VFC<{ serverAPI: ServerAPI }> = () => {
         <ToggleField
           label="Notifications"
           checked={settings.notifications}
-          onChange={async (e) => {
-            let new_settings = { notifications: e };
+          onChange={async (e: boolean) => {
+            let new_settings = settings;
+            new_settings.notifications = e;
+            await backend.setSettings(new_settings);
+            setSettings(new_settings);
+          }}
+        />
+      </PanelSectionRow>
+      <PanelSectionRow>
+        <ToggleField
+          label="Debug mode"
+          checked={settings.debug}
+          onChange={async (e: boolean) => {
+            let new_settings = settings;
+            new_settings.debug = e;
             await backend.setSettings(new_settings);
             setSettings(new_settings);
           }}

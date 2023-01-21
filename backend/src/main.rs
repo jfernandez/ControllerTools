@@ -25,39 +25,39 @@ use crate::settings::SettingsService;
 
 const PORT: u16 = 33220;
 
-#[cfg(debug_assertions)]
-const LOG_LEVEL: LevelFilter = LevelFilter::Debug;
-#[cfg(not(debug_assertions))]
-const LOG_LEVEL: LevelFilter = LevelFilter::Info;
-
 pub struct AppState {
     settings_service: SettingsService,
 }
 
 #[tokio::main]
 async fn main() {
-    let _ = CombinedLogger::init(vec![
+    let settings_location = match tokio::fs::metadata("/home/deck/homebrew/settings").await {
+        Ok(_) => "/home/deck/homebrew/settings/controller-tools.json",
+        Err(_) => "/tmp/controller-tools.json",
+    };
+    let settings_service = SettingsService::new(&settings_location).await.unwrap();
+
+    let level_filter = match settings_service.get_settings().await.debug {
+        true => LevelFilter::Debug,
+        false => LevelFilter::Info,
+    };
+    CombinedLogger::init(vec![
         TermLogger::new(
-            LOG_LEVEL,
+            level_filter,
             Config::default(),
             TerminalMode::Mixed,
             ColorChoice::Auto,
         ),
         WriteLogger::new(
-            LOG_LEVEL,
+            level_filter,
             Config::default(),
             File::create("/tmp/controller-tools.log").unwrap(),
         ),
-    ]);
+    ])
+    .unwrap();
 
-    let settings_location = match tokio::fs::metadata("/home/deck/homebrew/settings").await {
-        Ok(_) => "/home/deck/homebrew/settings/controller-tools.json",
-        Err(_) => "/tmp/controller-tools.json",
-    };
-
-    let settings = SettingsService::new(&settings_location).await.unwrap();
     let app_state = Arc::new(AppState {
-        settings_service: settings,
+        settings_service: settings_service,
     });
 
     let app = Router::new()
@@ -72,8 +72,9 @@ async fn main() {
                 .allow_methods([Method::GET, Method::POST]),
         );
 
-    // run it
     let addr = SocketAddr::from(([127, 0, 0, 1], PORT));
+    info!("Using settings file: {}", settings_location);
+    info!("Logging level: {:?}", level_filter);
     info!("Listening on {}", addr);
     axum::Server::bind(&addr)
         .serve(app.into_make_service())
