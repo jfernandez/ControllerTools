@@ -12,6 +12,18 @@
         "gdb-remote steamdeck:17777",
         "process handle SIGPIPE -n true -p true -s false"
       ]
+    },
+    {
+      "name": "Launch (lldb)",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/a.out",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "${workspaceFolder}",
+      "environment": [],
+      "externalConsole": false,
+      "miDebuggerPath": "/usr/bin/lldb"
     }
   ]
 }

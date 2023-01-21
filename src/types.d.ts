@@ -21,3 +21,7 @@ export interface Controller {
   status: string;
   bluetooth: boolean;
 }
+
+export interface Settings {
+  notifications: boolean;
+}

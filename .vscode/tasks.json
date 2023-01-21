@@ -12,8 +12,8 @@
             ],
             "group": "none",
             "dependsOn": [
-                "rust: cross build SteamDeck",
-            ],
+                "rust: cross build SteamDeck"
+            ]
         },
         {
             "label": "rust: cross build SteamDeck",
@@ -94,7 +94,7 @@
             "type": "shell",
             "group": "none",
             "dependsOn": [
-                "buildfrontend",
+                "buildfrontend"
             ],
             "command": "rsync -azp --delete --rsh='ssh -p ${config:deckport} ${config:deckkey}' dist deck@${config:deckip}:${config:deckdir}/homebrew/plugins/ControllerTools && DECKIP=${config:deckip} node scripts/reload_frontend.js",
             "problemMatcher": []
@@ -104,10 +104,6 @@
             "detail": "Deploy dev plugin to deck",
             "type": "shell",
             "group": "none",
-            "dependsOn": [
-                "createfolders",
-                "chmodfolders"
-            ],
             "command": "rsync -azp --delete --rsh='ssh -p ${config:deckport} ${config:deckkey}' build/ deck@${config:deckip}:${config:deckdir}/homebrew/plugins/ControllerTools",
             "problemMatcher": []
         },

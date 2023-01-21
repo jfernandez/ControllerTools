@@ -1,19 +1,27 @@
 mod api;
+mod settings;
+mod ws;
 
-use std::{fs::File, net::SocketAddr};
+use std::{fs::File, net::SocketAddr, sync::Arc};
 
 use api::Controller;
+
 use axum::{
+    extract::State,
     http::{HeaderValue, Method, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
     Json, Router,
 };
 use log::info;
+use settings::Settings;
 use simplelog::{
     ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
 };
+
 use tower_http::cors::{Any, CorsLayer};
+
+use crate::settings::SettingsService;
 
 const PORT: u16 = 33220;
 
@@ -21,6 +29,10 @@ const PORT: u16 = 33220;
 const LOG_LEVEL: LevelFilter = LevelFilter::Debug;
 #[cfg(not(debug_assertions))]
 const LOG_LEVEL: LevelFilter = LevelFilter::Info;
+
+pub struct AppState {
+    settings_service: SettingsService,
+}
 
 #[tokio::main]
 async fn main() {
@@ -38,12 +50,27 @@ async fn main() {
         ),
     ]);
 
-    let app = Router::new().route("/controllers", get(controllers)).layer(
-        CorsLayer::new()
-            .allow_origin("https://steamloopback.host".parse::<HeaderValue>().unwrap())
-            .allow_headers(Any)
-            .allow_methods([Method::GET, Method::POST]),
-    );
+    let settings_location = match tokio::fs::metadata("/home/deck/homebrew/settings").await {
+        Ok(_) => "/home/deck/homebrew/settings/controller-tools.json",
+        Err(_) => "/tmp/controller-tools.json",
+    };
+
+    let settings = SettingsService::new(&settings_location).await.unwrap();
+    let app_state = Arc::new(AppState {
+        settings_service: settings,
+    });
+
+    let app = Router::new()
+        .route("/controllers", get(controllers_json))
+        .route("/settings", get(get_settings).post(post_settings))
+        .route("/ws", get(ws::ws_handler))
+        .with_state(app_state)
+        .layer(
+            CorsLayer::new()
+                .allow_origin("https://steamloopback.host".parse::<HeaderValue>().unwrap())
+                .allow_headers(Any)
+                .allow_methods([Method::GET, Method::POST]),
+        );
 
     // run it
     let addr = SocketAddr::from(([127, 0, 0, 1], PORT));
@@ -54,13 +81,26 @@ async fn main() {
         .unwrap();
 }
 
-async fn controllers() -> Result<Json<Vec<Controller>>, AppError> {
-    // Spawn a blocking task to get the controllers. This is because `api.get_controllers()` is a blocking API
-    let controllers = tokio::task::spawn_blocking(api::get_controllers).await??;
+async fn get_settings(State(state): State<Arc<AppState>>) -> Result<Json<Settings>, AppError> {
+    let settings = state.settings_service.get_settings().await;
+    Ok(Json(settings))
+}
+
+async fn post_settings(
+    State(state): State<Arc<AppState>>,
+    Json(settings): Json<Settings>,
+) -> Result<Json<Settings>, AppError> {
+    let settings = state.settings_service.set_settings(settings).await?;
+    Ok(Json(settings))
+}
+
+async fn controllers_json() -> Result<Json<Vec<Controller>>, AppError> {
+    // Spawn a tokio blocking task because `get_controllers()` is a blocking API
+    let controllers = tokio::task::spawn_blocking(api::controllers).await??;
     Ok(Json(controllers))
 }
 
-// Make our own error that wraps `anyhow::Error`.
+// Make our own error that wraps `anyhow::Error`
 struct AppError(anyhow::Error);
 
 // Tell axum how to convert `AppError` into a response.

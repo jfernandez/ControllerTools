@@ -24,7 +24,7 @@ class Plugin:
     backend_proc = None
     # Asyncio-compatible long-running code, executed in a task when the plugin is loaded
     async def _main(self):
-        # startup
+        # startup with my_env
         self.backend_proc = subprocess.Popen([PARENT_DIR + "/bin/backend"])
         while True:
             await asyncio.sleep(1)

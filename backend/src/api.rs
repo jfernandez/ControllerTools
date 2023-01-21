@@ -20,9 +20,24 @@ pub struct Controller {
     pub bluetooth: bool,
 }
 
-pub fn get_controllers() -> Result<Vec<Controller>> {
+pub async fn controllers_async() -> Result<Vec<Controller>> {
+    // Spawn a tokio blocking task because `get_controllers()` is a blocking API
+    let controllers = tokio::task::spawn_blocking(controllers).await??;
+    Ok(controllers)
+}
+
+pub fn controllers() -> Result<Vec<Controller>> {
     let hidapi = HidApi::new()?;
     let mut controllers: Vec<Controller> = Vec::new();
+
+    // If in debug mode, check if there is a fake controller in /tmp/fake_controller.json
+    if cfg!(debug_assertions) {
+        if let Ok(file) = std::fs::File::open("/tmp/fake_controller.json") {
+            let controller: Controller = serde_json::from_reader(file)?;
+            debug!("Found fake controller: {:?}", controller);
+            controllers.push(controller);
+        }
+    }
 
     // HidApi will return 2 copies of the device when the Nintendo Pro Controller is connected via USB.
     // It will additionally return a 3rd device when the controller is connected via Bluetooth + USB.

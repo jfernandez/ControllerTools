@@ -7,6 +7,7 @@ import {
   PanelSectionRow,
   ServerAPI,
   staticClasses,
+  ToggleField,
 } from "decky-frontend-lib";
 import { useEffect, useState, VFC } from "react";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
@@ -14,9 +15,10 @@ import { SiStadia } from "react-icons/si";
 import { RiSwitchLine } from "react-icons/ri";
 import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation, FaXbox } from "react-icons/fa";
 import { BsController, BsBatteryCharging } from "react-icons/bs";
-import { Controller } from "./types";
+import { Controller, Settings } from "./types";
 import * as backend from "./backend";
 import { IconContext } from "react-icons";
+import { setupNotifications } from "./notifications";
 
 function getBatteryIcon(controller: Controller) {
   if (controller.status === 'charging') {
@@ -57,14 +59,22 @@ async function delayPromise<T>(value: T): Promise<T> {
   });
 }
 
-const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
+const Content: VFC<{ serverAPI: ServerAPI }> = () => {
+  const [settings, setSettings] = useState<Settings>({ notifications: true });
   const [loading, setLoading] = useState<boolean>(false);
   const [controllers, setControllers] = useState<Controller[]>([]);
   const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
 
+  // For fetching controller data on render
   useEffect(() => {
     backend.getControllers()
       .then((controllers) => { setControllers(controllers) });
+  }, []);
+
+  // For fetching settings on render
+  useEffect(() => {
+    backend.getSettings()
+      .then((settings) => { setSettings(settings) });
   }, []);
 
   const refreshButton = (
@@ -85,6 +95,22 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
     </PanelSectionRow >
   );
 
+  const settingsMenu = (
+    <PanelSection title="Settings">
+      <PanelSectionRow>
+        <ToggleField
+          label="Notifications"
+          checked={settings.notifications}
+          onChange={async (e) => {
+            let new_settings = { notifications: e };
+            await backend.setSettings(new_settings);
+            setSettings(new_settings);
+          }}
+        />
+      </PanelSectionRow>
+    </PanelSection>
+  )
+
   if (controllers.length === 0) {
     return <PanelSection title="Controllers">
       <PanelSectionRow>
@@ -97,6 +123,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
         </div>
       </PanelSectionRow>
       {refreshButton}
+      {settingsMenu}
     </PanelSection>;
   }
 
@@ -133,11 +160,16 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({ }) => {
         </PanelSectionRow>
       ))}
       {refreshButton}
+      {settingsMenu}
     </PanelSection >
   );
 };
 
 export default definePlugin((serverApi: ServerAPI) => {
+  // Starts a self-healing websocket connection to the backend to listen for push notifications.
+  // Must be called here to maintain the connection regardless of whether the plugin is open or not
+  setupNotifications(serverApi);
+
   return {
     title: <div className={staticClasses.Title}>Controller Tools</div>,
     content: <Content serverAPI={serverApi} />,

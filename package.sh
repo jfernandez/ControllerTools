@@ -3,11 +3,11 @@
 rm -rf build
 mkdir -p build/bin
 
-npm run build
+pnpm run build
 cp -r dist build/
 
-cross build --manifest-path backend/Cargo.toml
-cp ./backend/target/x86_64-unknown-linux-gnu/debug/controller-tools build/bin/backend
+cargo build --manifest-path backend/Cargo.toml
+cp ./backend/target/debug/controller-tools build/bin/backend
 
 cp package.json build/package.json
 cp plugin.json build/plugin.json
