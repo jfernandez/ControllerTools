@@ -141,7 +141,7 @@ pub fn parse_dualshock_controller_data(
     hidapi: &HidApi,
 ) -> Result<Controller> {
     let bluetooth = device_info.interface_number() == -1;
-    let device = hidapi.open(device_info.vendor_id(), device_info.product_id())?;
+    let device = device_info.open_device(hidapi)?;
     let mut controller = Controller {
         name: "DualShock 4".to_string(),
         product_id: device_info.product_id(),
@@ -189,7 +189,7 @@ pub fn parse_dualsense_controller_data(
     hidapi: &HidApi,
 ) -> Result<Controller> {
     let bluetooth = device_info.interface_number() == -1;
-    let device = hidapi.open(device_info.vendor_id(), device_info.product_id())?;
+    let device = device_info.open_device(hidapi)?;
 
     // Read data from device_info
     let mut buf = [0u8; DS_INPUT_REPORT_BT_SIZE];
