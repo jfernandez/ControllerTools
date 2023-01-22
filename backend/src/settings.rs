@@ -1,4 +1,5 @@
 use anyhow::Result;
+use log::error;
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tokio::fs::File;
@@ -6,12 +7,27 @@ use tokio::fs::File;
 #[derive(Serialize, Deserialize, Clone)]
 pub struct Settings {
     pub notifications: bool,
+    pub debug: bool,
 }
 
+// Default settings for debug mode
+#[cfg(debug_assertions)]
 impl Default for Settings {
     fn default() -> Self {
         Self {
             notifications: true,
+            debug: true,
+        }
+    }
+}
+
+// Default settings for --release mode
+#[cfg(not(debug_assertions))]
+impl Default for Settings {
+    fn default() -> Self {
+        Self {
+            notifications: true,
+            debug: false,
         }
     }
 }
@@ -34,7 +50,7 @@ impl SettingsService {
             match serde_json::from_reader(file.into_std().await) {
                 Ok(settings) => settings,
                 Err(err) => {
-                    log::error!("Resetting config file due to parse failure: {}", err);
+                    error!("Resetting config file due to parse failure: {}", err);
                     let settings = Settings::default();
                     write_settings(file_path, &settings).await?;
                     settings
@@ -56,7 +72,7 @@ impl SettingsService {
         let settings = match self.settings.lock() {
             Ok(settings) => settings,
             Err(err) => {
-                log::error!("Failed to get lock for settings: {}", err);
+                error!("Failed to get lock for settings: {}", err);
                 return Settings::default();
             }
         };

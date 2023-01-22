@@ -24,4 +24,5 @@ export interface Controller {
 
 export interface Settings {
   notifications: boolean;
+  debug: boolean;
 }
