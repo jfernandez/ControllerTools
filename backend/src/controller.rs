@@ -28,7 +28,9 @@ impl Controller {
         status: &str,
         bluetooth: bool,
     ) -> Self {
-        let serial_number = device.property_value("ID_SERIAL_SHORT").map(|serial_number| serial_number.to_string_lossy().to_string());
+        let serial_number = device
+            .property_value("ID_SERIAL_SHORT")
+            .map(|serial_number| serial_number.to_string_lossy().to_string());
         let device_path = if device.devpath().is_empty() {
             None
         } else {
@@ -57,7 +59,10 @@ impl Controller {
     }
 
     pub fn from_hidapi(device_info: &DeviceInfo, name: &str, capacity: u8, status: &str) -> Self {
-        let serial_number = device_info.serial_number().map(|serial_number| serial_number.to_string());
+        let serial_number = device_info
+            .serial_number()
+            .filter(|serial_number| !serial_number.is_empty())
+            .map(|serial_number| serial_number.to_string());
         let bluetooth = device_info.interface_number() == -1;
         let device_path_bytes = device_info.path().to_bytes();
         let device_path = if device_path_bytes.is_empty() {
