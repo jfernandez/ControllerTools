@@ -72,7 +72,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
     // a controller is low on battery
     let mut send_task = tokio::spawn(async move {
         // HashMap to store last alert timestamps for each controller
-        let mut last_alerts: HashMap<(u16, u16), u64> = HashMap::new();
+        let mut last_alerts: HashMap<String, u64> = HashMap::new();
         let mut cnt = 0;
 
         loop {
@@ -105,12 +105,9 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
                         .unwrap()
                         .as_secs();
 
-                    let first_alert =
-                        !last_alerts.contains_key(&(controller.vendor_id, controller.product_id));
+                    let first_alert = !last_alerts.contains_key(&controller.id());
 
-                    let last_alert = last_alerts
-                        .entry((controller.vendor_id, controller.product_id))
-                        .or_insert(now);
+                    let last_alert = last_alerts.entry(controller.id()).or_insert(now);
 
                     let last_alert_secs_ago = now - *last_alert;
                     debug!(

@@ -1,6 +1,6 @@
 use anyhow::Result;
 use hidapi::{DeviceInfo, HidApi};
-use log::debug;
+use log::{debug, error};
 use serde::Deserialize;
 
 use super::Controller;
@@ -26,23 +26,14 @@ struct InputReport {
 }
 
 pub fn parse_pro_controller_data(device_info: &DeviceInfo, hidapi: &HidApi) -> Result<Controller> {
-    let mut controller = Controller {
-        name: "Pro Controller".to_string(),
-        product_id: device_info.product_id(),
-        vendor_id: device_info.vendor_id(),
-        capacity: 0,
-        status: "Unknown".to_string(),
-        bluetooth: false,
-    };
+    let mut controller = Controller::from_hidapi(device_info, "Pro Controller", 0, "unknown");
 
     let device = device_info.open_device(hidapi)?;
-    controller.bluetooth = device_info.interface_number() == -1;
-
     let mut buf = [0u8; INPUT_REPORT_SIZE];
     let _res = match device.read_timeout(&mut buf[..], 1000) {
         Ok(res) => res,
         Err(e) => {
-            debug!("Error reading from device: {}", e);
+            error!("Error reading from device: {}", e);
             return Ok(controller);
         }
     };

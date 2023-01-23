@@ -87,6 +87,7 @@ impl SettingsService {
     }
 }
 
+#[cfg(test)]
 mod test {
 
     #[tokio::test]
