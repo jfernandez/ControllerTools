@@ -110,7 +110,7 @@ fn hex_os_str_to_u16(hex_os_str: &OsStr) -> u16 {
 
 #[cfg(test)]
 mod tests {
-    use super::hex_os_str_to_u16;
+    use super::{hex_os_str_to_u16, Controller};
     use std::ffi::OsStr;
 
     #[test]
@@ -131,6 +131,26 @@ mod tests {
             serialized,
             r#"{"name":"Test Controller","productId":1118,"vendorId":746,"capacity":0,"status":"disconnected","bluetooth":false}"#
         );
+    }
+
+    #[test]
+    fn test_id() {
+        let mut controller = Controller {
+            name: "Test Controller".to_string(),
+            product_id: 0x045e,
+            vendor_id: 0x02ea,
+            capacity: 0,
+            status: "disconnected".to_string(),
+            bluetooth: false,
+            device_path: Some("/dev/input/js0".to_string()),
+            serial_number: Some("1234567890".to_string()),
+        };
+
+        assert_eq!(controller.id(), "/dev/input/js0");
+        controller.device_path = None;
+        assert_eq!(controller.id(), "1234567890");
+        controller.serial_number = None;
+        assert_eq!(controller.id(), "746:1118");
     }
 
     #[test]

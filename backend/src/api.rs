@@ -22,11 +22,7 @@ pub fn controllers() -> Result<Vec<Controller>> {
 
     // If in debug mode, check if there is a fake controller in /tmp/fake_controller.json
     if cfg!(debug_assertions) {
-        if let Ok(file) = std::fs::File::open("/tmp/fake_controller.json") {
-            let controller: Controller = serde_json::from_reader(file)?;
-            debug!("Found fake controller: {:?}", controller);
-            controllers.push(controller);
-        }
+        parse_fake_controller(&mut controllers);
     }
 
     // HidApi will return 2 copies of the device when the Nintendo Pro Controller is connected via USB.
@@ -145,4 +141,22 @@ pub fn controllers() -> Result<Vec<Controller>> {
     }
 
     Ok(controllers)
+}
+
+fn parse_fake_controller(controllers: &mut Vec<Controller>) {
+    if let Ok(file) = std::fs::File::open("/tmp/fake_controller.json") {
+        let controller = match serde_json::from_reader(file) {
+            Ok(controller) => {
+                debug!("Loaded fake controller: {:?}", controller);
+                Some(controller)
+            }
+            Err(e) => {
+                debug!("Error parsing fake controller: {}", e);
+                None
+            }
+        };
+        if let Some(controller) = controller {
+            controllers.push(controller);
+        }
+    }
 }
