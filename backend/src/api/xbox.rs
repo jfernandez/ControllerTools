@@ -1,3 +1,5 @@
+use crate::controller::Status;
+
 use super::bluetooth::{get_battery_percentage, get_bluetooth_address};
 use anyhow::Result;
 use hidapi::{DeviceInfo, HidApi};
@@ -40,10 +42,10 @@ pub fn update_xbox_controller(controller: &mut Controller, bluetooth: bool) {
     controller.name = get_xbox_controller_name(controller.product_id).to_string();
     controller.capacity = if bluetooth { 0 } else { 100 }; // for now for USB, "fake" it and set capacity to 100 as charging
     controller.status = if bluetooth {
-        "unknown".to_string()
+        Status::Unknown
     } else {
         // for now for USB, "fake" it and set status to charging since it's plugged in
-        "charging".to_string()
+        Status::Charging
     };
 }
 
@@ -66,6 +68,6 @@ pub fn parse_xbox_controller_data(
     };
     let name = get_xbox_controller_name(device_info.product_id());
 
-    let controller = Controller::from_hidapi(device_info, name, capacity, "unknown");
+    let controller = Controller::from_hidapi(device_info, name, capacity, Status::Unknown);
     Ok(controller)
 }

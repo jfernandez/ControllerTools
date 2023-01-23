@@ -5,6 +5,8 @@ use hidapi::{DeviceInfo, HidApi};
 use log::error;
 use serde::{Deserialize, Serialize};
 
+use crate::controller::Status;
+
 use super::Controller;
 
 pub const DS_VENDOR_ID: u16 = 0x054c;
@@ -133,7 +135,7 @@ struct DualShock4TouchPoint {
 #[serde(rename_all = "camelCase")]
 struct BatteryInfo {
     capacity: u8,
-    status: String,
+    status: Status,
 }
 
 pub fn parse_dualshock_controller_data(
@@ -141,7 +143,7 @@ pub fn parse_dualshock_controller_data(
     hidapi: &HidApi,
 ) -> Result<Controller> {
     let device = device_info.open_device(hidapi)?;
-    let mut controller = Controller::from_hidapi(device_info, "DualShock 4", 0, "unknown");
+    let mut controller = Controller::from_hidapi(device_info, "DualShock 4", 0, Status::Unknown);
     let mut buf = vec![0u8; DS4_INPUT_REPORT_BT_SIZE];
     let res = device.read(&mut buf[..])?;
     let mut battery_data: u8 = 0;
@@ -183,7 +185,7 @@ pub fn parse_dualsense_controller_data(
     device_info: &DeviceInfo,
     hidapi: &HidApi,
 ) -> Result<Controller> {
-    let mut controller = Controller::from_hidapi(device_info, "DualSense", 0, "unknown");
+    let mut controller = Controller::from_hidapi(device_info, "DualSense", 0, Status::Unknown);
     let device = device_info.open_device(hidapi)?;
 
     // Read data from device_info
@@ -214,27 +216,27 @@ fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
     match charging_status {
         0x0 => BatteryInfo {
             capacity: cmp::min(battery_data * 10 + 5, 100),
-            status: "discharging".to_string(),
+            status: Status::Discharging,
         },
         0x1 => BatteryInfo {
             capacity: cmp::min(battery_data * 10 + 5, 100),
-            status: "charging".to_string(),
+            status: Status::Charging,
         },
         0x2 => BatteryInfo {
             capacity: cmp::min(battery_data * 10 + 5, 100),
-            status: "charging".to_string(),
+            status: Status::Charging,
         },
         0xa | 0xb => BatteryInfo {
             capacity: 0,
-            status: "not-charging".to_string(),
+            status: Status::Unknown,
         },
         0xf => BatteryInfo {
             capacity: 0,
-            status: "unknown".to_string(),
+            status: Status::Unknown,
         },
         _ => BatteryInfo {
             capacity: 0,
-            status: "unknown".to_string(),
+            status: Status::Unknown,
         },
     }
 }

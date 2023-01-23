@@ -5,6 +5,14 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use udev::Device;
 
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum Status {
+    Charging,
+    Discharging,
+    Unknown,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Controller {
@@ -12,7 +20,7 @@ pub struct Controller {
     pub product_id: u16,
     pub vendor_id: u16,
     pub capacity: u8,
-    pub status: String,
+    pub status: Status,
     pub bluetooth: bool,
     #[serde(skip_serializing)]
     pub serial_number: Option<String>,
@@ -25,7 +33,7 @@ impl Controller {
         device: &Device,
         name: &str,
         capacity: u8,
-        status: &str,
+        status: Status,
         bluetooth: bool,
     ) -> Self {
         let serial_number = device
@@ -51,14 +59,14 @@ impl Controller {
             vendor_id,
             product_id,
             capacity,
-            status: status.to_string(),
+            status,
             bluetooth,
             serial_number,
             device_path,
         }
     }
 
-    pub fn from_hidapi(device_info: &DeviceInfo, name: &str, capacity: u8, status: &str) -> Self {
+    pub fn from_hidapi(device_info: &DeviceInfo, name: &str, capacity: u8, status: Status) -> Self {
         let serial_number = device_info
             .serial_number()
             .filter(|serial_number| !serial_number.is_empty())
@@ -76,7 +84,7 @@ impl Controller {
             product_id: device_info.product_id(),
             vendor_id: device_info.vendor_id(),
             capacity,
-            status: status.to_string(),
+            status,
             bluetooth,
             serial_number,
             device_path,
@@ -94,6 +102,10 @@ impl Controller {
             },
         }
     }
+
+    pub fn is_discharging(&self) -> bool {
+        self.status == Status::Discharging
+    }
 }
 
 fn hex_os_str_to_u16(hex_os_str: &OsStr) -> u16 {
@@ -110,18 +122,39 @@ fn hex_os_str_to_u16(hex_os_str: &OsStr) -> u16 {
 
 #[cfg(test)]
 mod tests {
-    use super::{hex_os_str_to_u16, Controller};
+    use super::{hex_os_str_to_u16, Controller, Status};
     use std::ffi::OsStr;
 
     #[test]
-    fn test_json_serialization() {
-        // Verify that serde doesn't serialize the serial_number and device_path fields
-        let controller = super::Controller {
+    fn test_is_discharging() {
+        let mut controller = Controller {
             name: "Test Controller".to_string(),
             product_id: 0x045e,
             vendor_id: 0x02ea,
             capacity: 0,
-            status: "disconnected".to_string(),
+            status: Status::Discharging,
+            bluetooth: false,
+            serial_number: None,
+            device_path: None,
+        };
+        assert!(controller.is_discharging());
+
+        controller.status = Status::Charging;
+        assert!(!controller.is_discharging());
+
+        controller.status = Status::Unknown;
+        assert!(!controller.is_discharging());
+    }
+
+    #[test]
+    fn test_json_serialization() {
+        // Verify that serde doesn't serialize the serial_number and device_path fields
+        let controller = Controller {
+            name: "Test Controller".to_string(),
+            product_id: 0x045e,
+            vendor_id: 0x02ea,
+            capacity: 0,
+            status: Status::Discharging,
             bluetooth: false,
             serial_number: Some("1234567890".to_string()),
             device_path: Some("/dev/input/js0".to_string()),
@@ -129,7 +162,7 @@ mod tests {
         let serialized = serde_json::to_string(&controller).unwrap();
         assert_eq!(
             serialized,
-            r#"{"name":"Test Controller","productId":1118,"vendorId":746,"capacity":0,"status":"disconnected","bluetooth":false}"#
+            r#"{"name":"Test Controller","productId":1118,"vendorId":746,"capacity":0,"status":"discharging","bluetooth":false}"#
         );
     }
 
@@ -140,7 +173,7 @@ mod tests {
             product_id: 0x045e,
             vendor_id: 0x02ea,
             capacity: 0,
-            status: "disconnected".to_string(),
+            status: Status::Discharging,
             bluetooth: false,
             device_path: Some("/dev/input/js0".to_string()),
             serial_number: Some("1234567890".to_string()),

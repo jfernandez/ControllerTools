@@ -1,4 +1,4 @@
-use crate::controller::Controller;
+use crate::controller::{Controller, Status};
 
 use super::bluetooth::{get_battery_percentage, get_bluetooth_address};
 use super::nintendo::VENDOR_ID_NINTENDO;
@@ -40,6 +40,6 @@ pub fn get_controller_data(device_info: &DeviceInfo, _hidapi: &HidApi) -> Result
         name = "Stadia Controller";
     }
 
-    let controller = Controller::from_hidapi(device_info, name, capacity, "unknown");
+    let controller = Controller::from_hidapi(device_info, name, capacity, Status::Unknown);
     Ok(controller)
 }

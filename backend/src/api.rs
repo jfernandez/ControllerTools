@@ -8,7 +8,7 @@ use hidapi::HidApi;
 use log::debug;
 use udev::Enumerator;
 
-use crate::controller::Controller;
+use crate::controller::{Controller, Status};
 
 pub async fn controllers_async() -> Result<Vec<Controller>> {
     // Spawn a tokio blocking task because `get_controllers()` is a blocking API
@@ -133,7 +133,7 @@ pub fn controllers() -> Result<Vec<Controller>> {
     enumerator.match_subsystem("usb")?;
     for device in enumerator.scan_devices()? {
         let mut controller =
-            Controller::from_udev(&device, "Unknown Controller", 0, "unknown", false);
+            Controller::from_udev(&device, "Unknown Controller", 0, Status::Unknown, false);
         if xbox::is_xbox_controller(controller.vendor_id) {
             xbox::update_xbox_controller(&mut controller, false);
             controllers.push(controller);

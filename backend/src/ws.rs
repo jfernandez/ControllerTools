@@ -94,7 +94,7 @@ async fn handle_socket(mut socket: WebSocket, state: Arc<AppState>) {
             };
 
             for controller in controllers {
-                let low_battery = controller.capacity < 20 && controller.status == "discharging";
+                let low_battery = controller.capacity < 20 && controller.is_discharging();
                 debug!(
                     "Controller {} is low battery: {}",
                     controller.name, low_battery

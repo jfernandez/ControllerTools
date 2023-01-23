@@ -3,6 +3,8 @@ use hidapi::{DeviceInfo, HidApi};
 use log::{debug, error};
 use serde::Deserialize;
 
+use crate::controller::Status;
+
 use super::Controller;
 
 pub const VENDOR_ID_NINTENDO: u16 = 0x057e;
@@ -26,7 +28,7 @@ struct InputReport {
 }
 
 pub fn parse_pro_controller_data(device_info: &DeviceInfo, hidapi: &HidApi) -> Result<Controller> {
-    let mut controller = Controller::from_hidapi(device_info, "Pro Controller", 0, "unknown");
+    let mut controller = Controller::from_hidapi(device_info, "Pro Controller", 0, Status::Unknown);
 
     let device = device_info.open_device(hidapi)?;
     let mut buf = [0u8; INPUT_REPORT_SIZE];
@@ -44,9 +46,9 @@ pub fn parse_pro_controller_data(device_info: &DeviceInfo, hidapi: &HidApi) -> R
     let battery_charging = tmp & BIT!(4) != 0;
     let tmp = tmp >> 5;
     controller.status = if battery_charging {
-        "charging".to_string()
+        Status::Charging
     } else {
-        "discharging".to_string()
+        Status::Discharging
     };
     match tmp {
         0 => controller.capacity = 5,
