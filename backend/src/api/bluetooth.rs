@@ -36,13 +36,10 @@ pub fn get_battery_percentage(address: String) -> Result<u8> {
     for bt_line in content.lines() {
         if bt_line.contains("Battery Percentage") {
             // format is: "Battery Percentage: 0x42 (66)"
-            match bt_line.split(' ').nth(2) {
-                Some(percentage_hex) => {
-                    if let Ok(pct) = i64::from_str_radix(&percentage_hex[2..], 16) {
-                        percentage = pct as u8;
-                    }
+            if let Some(percentage_hex) = bt_line.split(' ').nth(2) {
+                if let Ok(pct) = i64::from_str_radix(&percentage_hex[2..], 16) {
+                    percentage = pct as u8;
                 }
-                None => {}
             }
         }
     }
