@@ -159,8 +159,9 @@ const Content: VFC<{ serverAPI: ServerAPI }> = () => {
                 (controller.capacity > 0 || controller.status !== "unknown") &&
                 <div className={gamepadDialogClasses.FieldChildren}>
                   {
-                    // since we don't have battery level yet for Xbox, don't show capactiy for the MS vendor
-                    (controller.vendorId != 1118 || controller.capacity > 0) &&
+                    // only show battery capacity for non-MS vendors unless capacity is > 0 and over BT
+                    // since we don't have the battery capacity yet for Xbox over USB
+                    (controller.vendorId != 1118 || (controller.capacity > 0 && controller.bluetooth)) &&
                     <span style={{ display: "inline-block", textAlign: "right", }}>{controller.capacity}%</span>
                   }
                   <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginLeft: "6px" }, size: '2em' }}>
