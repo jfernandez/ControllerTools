@@ -5,6 +5,8 @@ use hidapi::{DeviceInfo, HidApi};
 use log::error;
 use serde::{Deserialize, Serialize};
 
+use crate::controller::Status;
+
 use super::Controller;
 
 pub const DS_VENDOR_ID: u16 = 0x054c;
@@ -133,33 +135,28 @@ struct DualShock4TouchPoint {
 #[serde(rename_all = "camelCase")]
 struct BatteryInfo {
     capacity: u8,
-    status: String,
+    status: Status,
 }
 
 pub fn parse_dualshock_controller_data(
     device_info: &DeviceInfo,
     hidapi: &HidApi,
 ) -> Result<Controller> {
-    let bluetooth = device_info.interface_number() == -1;
     let device = device_info.open_device(hidapi)?;
-    let mut controller = Controller {
-        name: "DualShock 4".to_string(),
-        product_id: device_info.product_id(),
-        vendor_id: device_info.vendor_id(),
-        capacity: 0,
-        status: "unknown".to_string(),
-        bluetooth,
-    };
+    let mut controller = Controller::from_hidapi(device_info, "DualShock 4", 0, Status::Unknown);
     let mut buf = vec![0u8; DS4_INPUT_REPORT_BT_SIZE];
     let res = device.read(&mut buf[..])?;
     let mut battery_data: u8 = 0;
     let mut cable_state: u8 = 0;
-    if !bluetooth && buf[0] == DS4_INPUT_REPORT_USB && res == DS4_INPUT_REPORT_USB_SIZE {
+    if !controller.bluetooth && buf[0] == DS4_INPUT_REPORT_USB && res == DS4_INPUT_REPORT_USB_SIZE {
         let usb_report: Dualshock4InputReportUSB = bincode::deserialize(&buf)?;
         let ds4_report: DualShock4InputReportCommon = usb_report.common;
         battery_data = ds4_report.status[0] & DS4_STATUS_BATTERY_CAPACITY;
         cable_state = ds4_report.status[0] & DS4_STATUS0_CABLE_STATE;
-    } else if bluetooth && buf[0] == DS4_INPUT_REPORT_BT && res == DS4_INPUT_REPORT_BT_SIZE {
+    } else if controller.bluetooth
+        && buf[0] == DS4_INPUT_REPORT_BT
+        && res == DS4_INPUT_REPORT_BT_SIZE
+    {
         let bt_report: Dualshock4InputReportBT = bincode::deserialize(&buf)?;
         let ds4_report: DualShock4InputReportCommon = bt_report.common;
         battery_data = ds4_report.status[0] & DS4_STATUS_BATTERY_CAPACITY;
@@ -188,25 +185,18 @@ pub fn parse_dualsense_controller_data(
     device_info: &DeviceInfo,
     hidapi: &HidApi,
 ) -> Result<Controller> {
-    let bluetooth = device_info.interface_number() == -1;
+    let mut controller = Controller::from_hidapi(device_info, "DualSense", 0, Status::Unknown);
     let device = device_info.open_device(hidapi)?;
 
     // Read data from device_info
     let mut buf = [0u8; DS_INPUT_REPORT_BT_SIZE];
     let res = device.read(&mut buf[..])?;
-    let mut controller = Controller {
-        name: "DualSense".to_string(),
-        product_id: device_info.product_id(),
-        vendor_id: device_info.vendor_id(),
-        capacity: 0,
-        status: "unknown".to_string(),
-        bluetooth,
-    };
 
     let ds_report: DualSenseInputReport;
-    if !bluetooth && buf[0] == DS_INPUT_REPORT_USB && res == DS_INPUT_REPORT_USB_SIZE {
+    if !controller.bluetooth && buf[0] == DS_INPUT_REPORT_USB && res == DS_INPUT_REPORT_USB_SIZE {
         ds_report = bincode::deserialize(&buf[1..])?;
-    } else if bluetooth && buf[0] == DS_INPUT_REPORT_BT && res == DS_INPUT_REPORT_BT_SIZE {
+    } else if controller.bluetooth && buf[0] == DS_INPUT_REPORT_BT && res == DS_INPUT_REPORT_BT_SIZE
+    {
         ds_report = bincode::deserialize(&buf[2..])?;
     } else {
         error!("Unhandled report ID: {}", buf[0]);
@@ -226,27 +216,27 @@ fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
     match charging_status {
         0x0 => BatteryInfo {
             capacity: cmp::min(battery_data * 10 + 5, 100),
-            status: "discharging".to_string(),
+            status: Status::Discharging,
         },
         0x1 => BatteryInfo {
             capacity: cmp::min(battery_data * 10 + 5, 100),
-            status: "charging".to_string(),
+            status: Status::Charging,
         },
         0x2 => BatteryInfo {
             capacity: cmp::min(battery_data * 10 + 5, 100),
-            status: "charging".to_string(),
+            status: Status::Charging,
         },
         0xa | 0xb => BatteryInfo {
             capacity: 0,
-            status: "not-charging".to_string(),
+            status: Status::Unknown,
         },
         0xf => BatteryInfo {
             capacity: 0,
-            status: "unknown".to_string(),
+            status: Status::Unknown,
         },
         _ => BatteryInfo {
             capacity: 0,
-            status: "unknown".to_string(),
+            status: Status::Unknown,
         },
     }
 }

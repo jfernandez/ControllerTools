@@ -6,19 +6,9 @@ mod xbox;
 use anyhow::Result;
 use hidapi::HidApi;
 use log::debug;
-use serde::{Deserialize, Serialize};
 use udev::Enumerator;
 
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Controller {
-    pub name: String,
-    pub product_id: u16,
-    pub vendor_id: u16,
-    pub capacity: u8,
-    pub status: String,
-    pub bluetooth: bool,
-}
+use crate::controller::{Controller, Status};
 
 pub async fn controllers_async() -> Result<Vec<Controller>> {
     // Spawn a tokio blocking task because `get_controllers()` is a blocking API
@@ -32,11 +22,7 @@ pub fn controllers() -> Result<Vec<Controller>> {
 
     // If in debug mode, check if there is a fake controller in /tmp/fake_controller.json
     if cfg!(debug_assertions) {
-        if let Ok(file) = std::fs::File::open("/tmp/fake_controller.json") {
-            let controller: Controller = serde_json::from_reader(file)?;
-            debug!("Found fake controller: {:?}", controller);
-            controllers.push(controller);
-        }
+        parse_fake_controller(&mut controllers);
     }
 
     // HidApi will return 2 copies of the device when the Nintendo Pro Controller is connected via USB.
@@ -73,7 +59,7 @@ pub fn controllers() -> Result<Vec<Controller>> {
         .device_list()
         .filter(|device_info| {
             device_info.vendor_id() == xbox::MS_VENDOR_ID
-                && (device_info.product_id() == xbox::XBOX_CONTROLLER_PRODUCT_ID
+                && (device_info.product_id() == xbox::XBOX_ONE_S_CONTROLLER_BT_PRODUCT_ID
                     || device_info.product_id() == xbox::XBOX_ONE_S_LATEST_FW_PRODUCT_ID
                     || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID
                     || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID)
@@ -82,14 +68,14 @@ pub fn controllers() -> Result<Vec<Controller>> {
     xbox_controllers.dedup_by(|a, b| a.serial_number() == b.serial_number());
     for device_info in xbox_controllers {
         match (device_info.vendor_id(), device_info.product_id()) {
-            (xbox::MS_VENDOR_ID, xbox::XBOX_CONTROLLER_PRODUCT_ID) => {
+            (xbox::MS_VENDOR_ID, xbox::XBOX_ONE_S_CONTROLLER_BT_PRODUCT_ID) => {
                 debug!("!Found Xbox One S controller: {:?}", device_info);
                 let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
                 controllers.push(controller);
             }
             (xbox::MS_VENDOR_ID, xbox::XBOX_ONE_S_LATEST_FW_PRODUCT_ID) => {
                 debug!("Found Xbox One S controller: {:?}", device_info);
-                let controller = xbox::parse_xbox_controller_data(&device_info, &hidapi)?;
+                let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
 
                 controllers.push(controller);
             }
@@ -146,30 +132,31 @@ pub fn controllers() -> Result<Vec<Controller>> {
     let mut enumerator = Enumerator::new()?;
     enumerator.match_subsystem("usb")?;
     for device in enumerator.scan_devices()? {
-        let device_vendor_id = match device.property_value("ID_VENDOR_ID") {
-            Some(val) => val.to_str().unwrap(),
-            None => "0",
-        };
-        let device_product_id = match device.property_value("ID_MODEL_ID") {
-            Some(val) => val.to_str().unwrap(),
-            None => "0",
-        };
-        if device_vendor_id == xbox::MS_VENDOR_ID_STR {
-            if device_product_id == xbox::XBOX_CONTROLLER_USB_PRODUCT_ID_STR {
-                debug!("Found Xbox One S controller over USB");
-                controllers.push(xbox::get_xbox_controller(
-                    xbox::XBOX_CONTROLLER_USB_PRODUCT_ID,
-                    false,
-                )?)
-            } else if device_product_id == xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID_STR {
-                debug!("Found Xbox Series X/S controller over USB");
-                controllers.push(xbox::get_xbox_controller(
-                    xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID,
-                    false,
-                )?)
-            }
+        let mut controller =
+            Controller::from_udev(&device, "Unknown Controller", 0, Status::Unknown, false);
+        if xbox::is_xbox_controller(controller.vendor_id) {
+            xbox::update_xbox_controller(&mut controller, false);
+            controllers.push(controller);
         }
     }
 
     Ok(controllers)
+}
+
+fn parse_fake_controller(controllers: &mut Vec<Controller>) {
+    if let Ok(file) = std::fs::File::open("/tmp/fake_controller.json") {
+        let controller = match serde_json::from_reader(file) {
+            Ok(controller) => {
+                debug!("Loaded fake controller: {:?}", controller);
+                Some(controller)
+            }
+            Err(e) => {
+                debug!("Error parsing fake controller: {}", e);
+                None
+            }
+        };
+        if let Some(controller) = controller {
+            controllers.push(controller);
+        }
+    }
 }

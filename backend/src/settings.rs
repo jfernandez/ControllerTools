@@ -87,6 +87,7 @@ impl SettingsService {
     }
 }
 
+#[cfg(test)]
 mod test {
 
     #[tokio::test]
@@ -106,12 +107,12 @@ mod test {
         assert_eq!(settings.notifications, true);
         settings.notifications = false;
         settings_service.set_settings(settings).await?;
-        assert_eq!(settings_service.get_settings().await.notifications, false);
+        assert!(!settings_service.get_settings().await.notifications);
 
         // Read it again
         let settings_service = SettingsService::new(&file_path).await?;
         let settings = settings_service.get_settings().await;
-        assert_eq!(settings.notifications, false);
+        assert!(!settings.notifications);
 
         // Delete the config file
         tokio::fs::remove_file(file_path).await?;

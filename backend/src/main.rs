@@ -1,10 +1,9 @@
 mod api;
+mod controller;
 mod settings;
 mod ws;
 
 use std::{fs::File, net::SocketAddr, sync::Arc};
-
-use api::Controller;
 
 use axum::{
     extract::State,
@@ -13,6 +12,7 @@ use axum::{
     routing::get,
     Json, Router,
 };
+use controller::Controller;
 use log::info;
 use settings::Settings;
 use simplelog::{
@@ -35,7 +35,7 @@ async fn main() {
         Ok(_) => "/home/deck/homebrew/settings/controller-tools.json",
         Err(_) => "/tmp/controller-tools.json",
     };
-    let settings_service = SettingsService::new(&settings_location).await.unwrap();
+    let settings_service = SettingsService::new(settings_location).await.unwrap();
 
     let level_filter = match settings_service.get_settings().await.debug {
         true => LevelFilter::Debug,
@@ -56,9 +56,7 @@ async fn main() {
     ])
     .unwrap();
 
-    let app_state = Arc::new(AppState {
-        settings_service: settings_service,
-    });
+    let app_state = Arc::new(AppState { settings_service });
 
     let app = Router::new()
         .route("/controllers", get(controllers_json))
