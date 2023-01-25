@@ -9,6 +9,8 @@ Steam Deck game controller plugin for [Decky Loader](https://github.com/SteamDec
 * Nintendo Switch Pro Controller
 * Xbox Series X|S Controller
 * Xbox One Controller
+* Google Stadia Controller
+* Other HID-Class controllers
 
 ## Installation
 1. Install [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader).
