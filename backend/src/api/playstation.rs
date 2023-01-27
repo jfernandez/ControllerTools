@@ -24,8 +24,11 @@ const DS4_STATUS_BATTERY_CAPACITY: u8 = 0b1111;
 const DS4_STATUS0_CABLE_STATE: u8 = 1 << 4;
 const DS4_BATTERY_STATUS_FULL: u8 = 11;
 
-// PlayStation 5 DualSense controller
+// DualSense
 pub const DS_PRODUCT_ID: u16 = 0x0ce6;
+
+// DualSense Edge
+pub const DS_EDGE_PRODUCT_ID: u16 = 0x0df2;
 
 const DS_INPUT_REPORT_BT: u8 = 0x31;
 const DS_INPUT_REPORT_BT_SIZE: usize = 78;
@@ -184,8 +187,9 @@ pub fn parse_dualshock_controller_data(
 pub fn parse_dualsense_controller_data(
     device_info: &DeviceInfo,
     hidapi: &HidApi,
+    name: &str,
 ) -> Result<Controller> {
-    let mut controller = Controller::from_hidapi(device_info, "DualSense", 0, Status::Unknown);
+    let mut controller = Controller::from_hidapi(device_info, name, 0, Status::Unknown);
     let device = device_info.open_device(hidapi)?;
 
     // Read data from device_info

@@ -92,8 +92,21 @@ pub fn controllers() -> Result<Vec<Controller>> {
         match (device_info.vendor_id(), device_info.product_id()) {
             (playstation::DS_VENDOR_ID, playstation::DS_PRODUCT_ID) => {
                 debug!("Found DualSense controller: {:?}", device_info);
-                let controller =
-                    playstation::parse_dualsense_controller_data(device_info, &hidapi)?;
+                let controller = playstation::parse_dualsense_controller_data(
+                    device_info,
+                    &hidapi,
+                    "DualSense",
+                )?;
+
+                controllers.push(controller);
+            }
+            (playstation::DS_VENDOR_ID, playstation::DS_EDGE_PRODUCT_ID) => {
+                debug!("Found DualSense Edge controller: {:?}", device_info);
+                let controller = playstation::parse_dualsense_controller_data(
+                    device_info,
+                    &hidapi,
+                    "DualSense Edge",
+                )?;
 
                 controllers.push(controller);
             }
