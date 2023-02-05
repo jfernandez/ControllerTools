@@ -38,7 +38,7 @@ pub fn controllers() -> Result<Vec<Controller>> {
     if nintendo_pro_controllers.len() == 1 || nintendo_pro_controllers.len() == 2 {
         // When we only get one device, we know it's connected via Bluetooth.
         // When we get two devices, we know it's connected only via USB. Both will report the same data, so we'll just return the first one.
-        let controller = nintendo::parse_pro_controller_data(nintendo_pro_controllers[0], &hidapi)?;
+        let controller = nintendo::parse_controller_data(nintendo_pro_controllers[0], &hidapi)?;
         controllers.push(controller);
     } else if nintendo_pro_controllers.len() == 3 {
         // When we get three devices, we know it's connected via USB + Bluetooth.
@@ -48,9 +48,21 @@ pub fn controllers() -> Result<Vec<Controller>> {
             .find(|device_info| device_info.interface_number() == -1);
 
         if let Some(bt_controller) = bt_controller {
-            let controller = nintendo::parse_pro_controller_data(bt_controller, &hidapi)?;
+            let controller = nintendo::parse_controller_data(bt_controller, &hidapi)?;
             controllers.push(controller);
         }
+    }
+
+    let nintendo_non_pro_controllers: Vec<_> = hidapi
+        .device_list()
+        .filter(|device_info| {
+            device_info.vendor_id() == nintendo::VENDOR_ID_NINTENDO
+                && device_info.product_id() != nintendo::PRODUCT_ID_NINTENDO_PROCON
+        })
+        .collect();
+    for device_info in nintendo_non_pro_controllers {
+        let controller = nintendo::parse_controller_data(device_info, &hidapi)?;
+        controllers.push(controller);
     }
 
     // for some reason HidApi's list_devices() is returning multiple instances of the same controller
