@@ -13,5 +13,5 @@ Steam Deck game controller plugin for [Decky Loader](https://github.com/SteamDec
 * Other HID-Class controllers
 
 ## Installation
-1. Install [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader).
+1. Install [Decky Loader](https://deckbrew.xyz/).
 2. Find the plugin in the Decky Store and install it.
