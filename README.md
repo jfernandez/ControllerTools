@@ -5,6 +5,7 @@ Steam Deck game controller plugin for [Decky Loader](https://github.com/SteamDec
 
 ## Supported Controllers
 * PlayStation DualSense
+* Playstation DualShock 3
 * Playstation DualShock 4
 * Nintendo Switch Pro Controller
 * Xbox Series X|S Controller

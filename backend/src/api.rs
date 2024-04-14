@@ -100,8 +100,20 @@ pub fn controllers() -> Result<Vec<Controller>> {
         }
     }
 
-    for device_info in hidapi.device_list() {
+    let mut unique_devices: Vec<_> = hidapi.device_list().collect();
+    unique_devices.dedup_by(|a, b| a.serial_number() == b.serial_number());
+    for device_info in unique_devices {
         match (device_info.vendor_id(), device_info.product_id()) {
+            (playstation::DS_VENDOR_ID, playstation::DS3_PRODUCT_ID) => {
+                debug!("Found DualShock3 controller: {:?}", device_info);
+                let controller = playstation::parse_dualshock3_controller_data(
+                    device_info,
+                    &hidapi,
+                    "DualShock3",
+                )?;
+
+                controllers.push(controller);
+            }
             (playstation::DS_VENDOR_ID, playstation::DS_PRODUCT_ID) => {
                 debug!("Found DualSense controller: {:?}", device_info);
                 let controller = playstation::parse_dualsense_controller_data(

@@ -3,6 +3,7 @@ use std::cmp;
 use anyhow::Result;
 use hidapi::{DeviceInfo, HidApi};
 use log::error;
+use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::controller::Status;
@@ -37,6 +38,15 @@ const DS_INPUT_REPORT_USB_SIZE: usize = 64;
 const DS_STATUS_BATTERY_CAPACITY: u8 = 0b1111;
 const DS_STATUS_CHARGING: u8 = 0b1111 << 4;
 const DS_STATUS_CHARGING_SHIFT: u8 = 4;
+
+// DualShock3
+pub const DS3_PRODUCT_ID: u16 = 0x0268;
+
+const DS3_INPUT_REPORT: u8 = 0x01;
+const DS3_INPUT_REPORT_SIZE: usize = 49;
+const DS3_INPUT_REPORT_BATTERY_OFFSET: usize = 30;
+const DS3_INPUT_REPORT_BATTERY_CHARGING: u8 = 0xee;
+const DS3_INPUT_REPORT_CHARGING_BIT: u8 = 0x01;
 
 #[repr(C, packed)]
 #[derive(Copy, Clone, Debug, Deserialize)]
@@ -243,6 +253,76 @@ fn get_battery_status(charging_status: u8, battery_data: u8) -> BatteryInfo {
             status: Status::Unknown,
         },
     }
+}
+
+pub fn parse_dualshock3_controller_data(
+    device_info: &DeviceInfo,
+    hidapi: &HidApi,
+    name: &str,
+) -> Result<Controller> {
+    let mut controller = Controller::from_hidapi(device_info, name, 0, Status::Unknown);
+    let device = device_info.open_device(hidapi)?;
+
+    // Read data from device_info
+    // If the DualShock 3 controller is not "activated", if its LEDs are blinking, it will not
+    // respond to reads, so we will timeout after 5s
+    let mut buf = [0u8; DS3_INPUT_REPORT_SIZE];
+    let res = device.read_timeout(&mut buf[..], 2000)?;
+
+    if res == 0 {
+        info!("Inactive DualShock 3 controller");
+        return Ok(controller);
+    }
+
+    if buf[1] == 0xff {
+        /* Comment coppied from the linux driver at drivers/hid/hid-sony.c
+         * When connected via Bluetooth the Sixaxis occasionally sends
+         * a report with the second byte 0xff and the rest zeroed.
+         *
+         * This report does not reflect the actual state of the
+         * controller must be ignored to avoid generating false input
+         * events.
+         */
+        return Ok(controller);
+    }
+
+    let battery_data: u8;
+    if buf[0] == DS3_INPUT_REPORT && res == DS3_INPUT_REPORT_SIZE
+    {
+        battery_data = buf[DS3_INPUT_REPORT_BATTERY_OFFSET];
+    } else {
+        error!("Unhandled report ID: {}", buf[0]);
+        return Ok(controller);
+    }
+
+    let battery_status = get_ds3_battery_status(battery_data);
+    controller.capacity = battery_status.capacity;
+    controller.status = battery_status.status;
+
+    Ok(controller)
+}
+
+fn get_ds3_battery_status(battery_data: u8) -> BatteryInfo {
+    /*
+     * This code was based on the linux driver for this controller.
+     * sixaxis_parse_report() from drivers/hid/hid-sony.c
+     */
+
+    let mut battery_info = BatteryInfo{capacity:75, status:Status::Unknown};
+    if battery_data >= DS3_INPUT_REPORT_BATTERY_CHARGING {
+        //if the controller is charging, it does not report exact battery capacity
+        battery_info.status = match battery_data & DS3_INPUT_REPORT_CHARGING_BIT {
+            0 => Status::Charging,
+            _ => {battery_info.capacity = 100; Status::Unknown},
+        };
+    } else {
+        let index: usize = if battery_data <= 5 {battery_data.into()} else {5};
+        let dualshock3_battery_capacity_values = [0, 1, 25, 50, 75, 100];
+        battery_info.capacity = dualshock3_battery_capacity_values[index];
+        battery_info.status = Status::Discharging;
+    }
+
+    battery_info
 }
 
 #[cfg(test)]
