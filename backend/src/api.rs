@@ -74,7 +74,10 @@ pub fn controllers() -> Result<Vec<Controller>> {
                 && (device_info.product_id() == xbox::XBOX_ONE_S_CONTROLLER_BT_PRODUCT_ID
                     || device_info.product_id() == xbox::XBOX_ONE_S_LATEST_FW_PRODUCT_ID
                     || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_USB_PRODUCT_ID
-                    || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID)
+                    || device_info.product_id() == xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID
+                    || device_info.product_id() == xbox::XBOX_WIRELESS_ELITE_CONTROLLER_USB_PRODUCT_ID
+                    || device_info.product_id() == xbox::XBOX_WIRELESS_ELITE_CONTROLLER_BT_PRODUCT_ID
+                    || device_info.product_id() == xbox::XBOX_WIRELESS_ELITE_CONTROLLER_BTLE_PRODUCT_ID)
         })
         .collect();
     xbox_controllers.dedup_by(|a, b| a.serial_number() == b.serial_number());
@@ -93,6 +96,16 @@ pub fn controllers() -> Result<Vec<Controller>> {
             }
             (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_CONTROLLER_BT_PRODUCT_ID) => {
                 debug!("Found Xbox Series X/S controller: {:?}", device_info);
+                let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
+                controllers.push(controller);
+            }
+            (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_ELITE_CONTROLLER_BT_PRODUCT_ID) => {
+                debug!("Found Xbox Elite 2 controller: {:?}", device_info);
+                let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
+                controllers.push(controller);
+            }
+            (xbox::MS_VENDOR_ID, xbox::XBOX_WIRELESS_ELITE_CONTROLLER_BTLE_PRODUCT_ID) => {
+                debug!("Found Xbox Elite 2 controller: {:?}", device_info);
                 let controller = xbox::parse_xbox_controller_data(device_info, &hidapi)?;
                 controllers.push(controller);
             }
