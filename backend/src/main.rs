@@ -74,10 +74,9 @@ async fn main() {
     info!("Using settings file: {}", settings_location);
     info!("Logging level: {:?}", level_filter);
     info!("Listening on {}", addr);
-    axum::Server::bind(&addr)
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 async fn get_settings(State(state): State<Arc<AppState>>) -> Result<Json<Settings>, AppError> {
