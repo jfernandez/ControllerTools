@@ -2,6 +2,7 @@
   "name": "ControllerTools",
   "version": "1.1.2",
   "description": "The missing game controller menu. Displays the current battery % and charging status",
+  "type": "module",
   "scripts": {
     "build": "shx rm -rf dist && rollup -c",
     "watch": "rollup -c -w",
@@ -24,7 +25,7 @@
   ],
   "author": {
     "name": "Jose Fernandez",
-    "email": "jose@alphamercury.io",
+    "email": "me@jfernandez.com",
     "url": "https://github.com/jfernandez"
   },
   "contributors": [
@@ -36,9 +37,9 @@
   ],
   "license": "GPLv3",
   "bugs": {
-    "url": "https://github.com/alphamercury/ControllerTools/issues"
+    "url": "https://github.com/jfernandez/ControllerTools/issues"
   },
-  "homepage": "https://github.com/alphamercury/ControllerTools#readme",
+  "homepage": "https://github.com/jfernandez/ControllerTools#readme",
   "devDependencies": {
     "@rollup/plugin-commonjs": "^21.1.0",
     "@rollup/plugin-json": "^4.1.0",
@@ -47,7 +48,6 @@
     "@rollup/plugin-typescript": "^8.3.3",
     "@types/react": "16.14.0",
     "@types/webpack": "^5.28.0",
-    "chrome-remote-interface": "^0.31.3",
     "rollup": "^2.77.1",
     "rollup-plugin-import-assets": "^1.1.1",
     "shx": "^0.3.4",
@@ -55,7 +55,7 @@
     "typescript": "^4.7.4"
   },
   "dependencies": {
-    "decky-frontend-lib": "^3.19.2",
+    "decky-frontend-lib": "^3.25.0",
     "react-icons": "^4.4.0"
   },
   "pnpm": {
