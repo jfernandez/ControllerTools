@@ -82,15 +82,14 @@ const Content: VFC<{ serverAPI: ServerAPI }> = () => {
       <div className={gamepadDialogClasses.Field}>
         <ButtonItem
           layout="below"
+          label="Refresh"
           onClick={async () => {
             setControllers([]);
             setLoading(true);
             setControllers(await delayPromise(backend.getControllers()));
             setLoading(false);
           }}
-        >
-          Refresh
-        </ButtonItem>
+        />
       </div>
     </PanelSectionRow >
   );

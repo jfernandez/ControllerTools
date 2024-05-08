@@ -3,7 +3,7 @@
 rm -rf build
 mkdir -p build/bin
 
-npm install
+pnpm install
 
 pnpm run build
 cp -r dist build/
