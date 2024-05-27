@@ -1,6 +1,6 @@
 {
   "name": "ControllerTools",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "The missing game controller menu. Displays the current battery % and charging status",
   "type": "module",
   "scripts": {
