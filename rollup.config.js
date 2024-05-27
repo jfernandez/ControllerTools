@@ -32,6 +32,5 @@ export default defineConfig({
     },
     format: 'iife',
     exports: 'default',
-    name: "ControllerTools",
   },
 });
