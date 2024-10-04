@@ -1,10 +1,10 @@
 use anyhow::Result;
 use log::error;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::sync::Mutex;
 use tokio::fs::File;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Deserialize, Clone)]
 pub struct Settings {
     pub notifications: bool,
     pub debug: bool,
@@ -34,37 +34,25 @@ impl Default for Settings {
 
 pub struct SettingsService {
     settings: Mutex<Settings>,
-    file_path: String,
-}
-
-async fn write_settings(file_path: &str, settings: &Settings) -> Result<()> {
-    let file = File::create(file_path).await?;
-    serde_json::to_writer(file.into_std().await, settings)?;
-    Ok(())
 }
 
 impl SettingsService {
-    pub async fn new(file_path: &str) -> Result<Self> {
+    pub async fn new(file_path: &String) -> Result<Self> {
         let file = File::open(file_path).await;
         let settings = if let Ok(file) = file {
             match serde_json::from_reader(file.into_std().await) {
                 Ok(settings) => settings,
                 Err(err) => {
                     error!("Resetting config file due to parse failure: {}", err);
-                    let settings = Settings::default();
-                    write_settings(file_path, &settings).await?;
-                    settings
+                    Settings::default()
                 }
             }
         } else {
-            let settings = Settings::default();
-            write_settings(file_path, &settings).await?;
-            settings
+            Settings::default()
         };
 
         Ok(Self {
             settings: Mutex::new(settings),
-            file_path: file_path.to_string(),
         })
     }
 
@@ -77,13 +65,6 @@ impl SettingsService {
             }
         };
         settings.clone()
-    }
-
-    pub async fn set_settings(&self, settings: Settings) -> Result<Settings> {
-        write_settings(&self.file_path, &settings).await?;
-        let mut current_settings = self.settings.lock().unwrap();
-        *current_settings = settings;
-        Ok(current_settings.clone())
     }
 }
 
@@ -106,8 +87,6 @@ mod test {
         let mut settings = settings_service.get_settings().await;
         assert_eq!(settings.notifications, true);
         settings.notifications = false;
-        settings_service.set_settings(settings).await?;
-        assert!(!settings_service.get_settings().await.notifications);
 
         // Read it again
         let settings_service = SettingsService::new(&file_path).await?;

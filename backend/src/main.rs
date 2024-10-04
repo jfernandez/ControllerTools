@@ -6,7 +6,6 @@ mod ws;
 use std::{fs::File, net::SocketAddr, sync::Arc};
 
 use axum::{
-    extract::State,
     http::{HeaderValue, Method, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
@@ -14,7 +13,6 @@ use axum::{
 };
 use controller::Controller;
 use log::info;
-use settings::Settings;
 use simplelog::{
     ColorChoice, CombinedLogger, Config, LevelFilter, TermLogger, TerminalMode, WriteLogger,
 };
@@ -31,11 +29,19 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
-    let settings_location = match tokio::fs::metadata("/home/deck/homebrew/settings").await {
-        Ok(_) => "/home/deck/homebrew/settings/controller-tools.json",
-        Err(_) => "/tmp/controller-tools.json",
+    let args: Vec<String> = std::env::args().collect();
+
+    if args.len() != 3 {
+        panic!("Error: Expected 2 arguments, but got {}", args.len() - 1);
+    }
+
+    let settings_directory = args[1].clone();
+
+    let settings_location = match tokio::fs::metadata(&settings_directory).await {
+        Ok(_) => format!("{}/settings.json", &settings_directory),
+        Err(_) => String::from("/tmp/controller-tools.json"),
     };
-    let settings_service = SettingsService::new(settings_location).await.unwrap();
+    let settings_service = SettingsService::new(&settings_location).await.unwrap();
 
     let level_filter = match settings_service.get_settings().await.debug {
         true => LevelFilter::Debug,
@@ -51,7 +57,7 @@ async fn main() {
         WriteLogger::new(
             level_filter,
             Config::default(),
-            File::create("/tmp/controller-tools.log").unwrap(),
+            File::create(args[2].clone()).unwrap(),
         ),
     ])
     .unwrap();
@@ -60,7 +66,6 @@ async fn main() {
 
     let app = Router::new()
         .route("/controllers", get(controllers_json))
-        .route("/settings", get(get_settings).post(post_settings))
         .route("/ws", get(ws::ws_handler))
         .with_state(app_state)
         .layer(
@@ -71,25 +76,11 @@ async fn main() {
         );
 
     let addr = SocketAddr::from(([127, 0, 0, 1], PORT));
-    info!("Using settings file: {}", settings_location);
     info!("Logging level: {:?}", level_filter);
     info!("Listening on {}", addr);
     
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
-}
-
-async fn get_settings(State(state): State<Arc<AppState>>) -> Result<Json<Settings>, AppError> {
-    let settings = state.settings_service.get_settings().await;
-    Ok(Json(settings))
-}
-
-async fn post_settings(
-    State(state): State<Arc<AppState>>,
-    Json(settings): Json<Settings>,
-) -> Result<Json<Settings>, AppError> {
-    let settings = state.settings_service.set_settings(settings).await?;
-    Ok(Json(settings))
 }
 
 async fn controllers_json() -> Result<Json<Vec<Controller>>, AppError> {

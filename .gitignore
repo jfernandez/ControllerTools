@@ -15,24 +15,8 @@ lib-cov
 *.gz
 *.swp
 
-pids
-logs
-results
-tmp
-
-# Coverage reports
-coverage
-
-# API keys and secrets
-.env
-
 # Dependency directory
 node_modules
-bower_components
-
-# Editors
-.idea
-*.iml
 
 # OS metadata
 .DS_Store
@@ -41,13 +25,13 @@ Thumbs.db
 # Ignore built ts files
 dist/
 
-__pycache__/
-
-/.yalc
-yalc.lock
-
 .vscode/settings.json
 
 # Ignore output folder
 
 backend/out
+
+.pnpm-store/
+cli/
+deck.json
+out/

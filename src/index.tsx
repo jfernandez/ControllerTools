@@ -5,17 +5,16 @@ import {
   joinClassNames,
   PanelSection,
   PanelSectionRow,
-  ServerAPI,
   staticClasses,
   ToggleField,
-} from "decky-frontend-lib";
-import { useEffect, useState, VFC } from "react";
+} from "@decky/ui";
+import { useEffect, useState, FC } from "react";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
 import { SiStadia } from "react-icons/si";
 import { RiSwitchLine } from "react-icons/ri";
 import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation, FaXbox } from "react-icons/fa";
 import { BsController, BsBatteryCharging } from "react-icons/bs";
-import { Controller, Settings } from "./types";
+import { Controller } from "./types";
 import * as backend from "./backend";
 import { IconContext } from "react-icons";
 import { setupNotifications } from "./notifications";
@@ -59,8 +58,9 @@ async function delayPromise<T>(value: T): Promise<T> {
   });
 }
 
-const Content: VFC<{ serverAPI: ServerAPI }> = () => {
-  const [settings, setSettings] = useState<Settings>({ notifications: true, debug: false });
+const Content: FC = () => {
+  const [debug, setDebug] = useState<boolean>(false);
+  const [notifications, setNotifications] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [controllers, setControllers] = useState<Controller[]>([]);
   const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
@@ -73,8 +73,10 @@ const Content: VFC<{ serverAPI: ServerAPI }> = () => {
 
   // For fetching settings on render
   useEffect(() => {
-    backend.getSettings()
-      .then((settings) => { setSettings(settings) });
+    backend.getDebugSetting()
+      .then((debug) => { setDebug(debug) });
+    backend.getNotificationsSetting()
+      .then((notifications) => { setNotifications(notifications) });
   }, []);
 
   const refreshButton = (
@@ -100,24 +102,20 @@ const Content: VFC<{ serverAPI: ServerAPI }> = () => {
       <PanelSectionRow>
         <ToggleField
           label="Notifications"
-          checked={settings.notifications}
+          checked={notifications}
           onChange={async (e: boolean) => {
-            let new_settings = settings;
-            new_settings.notifications = e;
-            await backend.setSettings(new_settings);
-            setSettings(new_settings);
+            await backend.setNotificationsSetting(e);
+            await backend.settingsCommit();
           }}
         />
       </PanelSectionRow>
       <PanelSectionRow>
         <ToggleField
           label="Debug mode"
-          checked={settings.debug}
+          checked={debug}
           onChange={async (e: boolean) => {
-            let new_settings = settings;
-            new_settings.debug = e;
-            await backend.setSettings(new_settings);
-            setSettings(new_settings);
+            await backend.setDebugSetting(e);
+            await backend.settingsCommit();
           }}
         />
       </PanelSectionRow>
@@ -157,7 +155,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = () => {
               </div>
               {
                 (controller.capacity > 0 || controller.status !== "unknown") &&
-                <div className={gamepadDialogClasses.FieldChildren}>
+                <div className={gamepadDialogClasses.FieldChildrenInner}>
                   {
                     // only show battery capacity for non-MS vendors unless capacity is > 0 and over BT
                     // since we don't have the battery capacity yet for Xbox over USB
@@ -179,14 +177,14 @@ const Content: VFC<{ serverAPI: ServerAPI }> = () => {
   );
 };
 
-export default definePlugin((serverApi: ServerAPI) => {
+export default definePlugin(() => {
   // Starts a self-healing websocket connection to the backend to listen for push notifications.
   // Must be called here to maintain the connection regardless of whether the plugin is open or not
-  setupNotifications(serverApi);
+  setupNotifications();
 
   return {
     title: <div className={staticClasses.Title}>Controller Tools</div>,
-    content: <Content serverAPI={serverApi} />,
+    content: <Content />,
     icon: <BsController />,
   };
 });
