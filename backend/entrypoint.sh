@@ -5,4 +5,4 @@ echo "Container's IP address: `awk 'END{print $1}' /etc/hosts`"
 
 cd /backend
 
-./build-docker.sh
+./build.sh

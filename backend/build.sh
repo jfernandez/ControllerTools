@@ -1,11 +1,15 @@
 #!/bin/bash
 
-mkdir -p ../bin
+echo "--- Rust version info ---"
+rustup --version
+rustc --version
+cargo --version
 
-# Debug
-cross build
-cp ./target/x86_64-unknown-linux-gnu/debug/controller-tools ../bin/backend
+echo "--- Building plugin backend ---"
+cargo build --release
+mkdir -p out
+cp target/release/controller-tools out/backend
 
-# Release
-#TARGET_CC=x86_64-unknown-linux-gnu-gcc cargo build --release --target x86_64-unknown-linux-gnu
-#cp ./target/x86_64-unknown-linux-gnu/release/backend ../bin/backend
+echo " --- Cleaning up ---"
+# remove root-owned target folder
+cargo clean

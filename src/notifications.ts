@@ -1,7 +1,7 @@
-import { ServerAPI, ToastData } from 'decky-frontend-lib';
+import { toaster, ToastData } from '@decky/api';
 import { log, error } from './logger';
 
-export const setupNotifications = (serverAPI: ServerAPI): void => {
+export const setupNotifications = (): void => {
   const handleMessage = (e: MessageEvent): void => {
     let toastData: ToastData = {
       title: "Controller Tools",
@@ -9,7 +9,7 @@ export const setupNotifications = (serverAPI: ServerAPI): void => {
       showToast: true
     }
 
-    serverAPI.toaster.toast(toastData);
+    toaster.toast(toastData);
   }
 
   const setupWebsocket = (): void => {
