@@ -1,20 +1,21 @@
 import {
-  ButtonItem,
   gamepadDialogClasses,
   joinClassNames,
   PanelSection,
   PanelSectionRow,
-  ToggleField,
 } from "@decky/ui";
 
 import { useEffect, useState } from "react";
 import { IconContext } from "react-icons";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
 
+import BatteryIcon from "./BatteryIcon";
+import RefreshButton from "./RefreshButton";
+import SettingsMenu from "./SettingsMenu";
+import VendorIcon from "./VendorIcon";
+
 import * as backend from "../backend";
 import { IController } from "../types";
-import BatteryIcon from "./BatteryIcon";
-import VendorIcon from "./VendorIcon";
 
 const delayPromise = <T,>(value: T) => {
   return new Promise<T>(resolve => {
@@ -41,54 +42,28 @@ const PluginContent = () => {
       .then(notifications => { setNotifications(notifications); });
   }, []);
 
-  const refreshButton = (
-    <PanelSectionRow>
-      <div className={gamepadDialogClasses.Field}>
-        <ButtonItem
-          layout="below"
-          onClick={async () => {
-            setControllers([]);
-            setLoading(true);
-            setControllers(await delayPromise(backend.getControllers()));
-            setLoading(false);
-          }}
-        >
-          Refresh
-        </ButtonItem>
-      </div>
-    </PanelSectionRow >
-  );
+  const onRefresh = async () => {
+    setControllers([]);
+    setLoading(true);
+    setControllers(await delayPromise(backend.getControllers()));
+    setLoading(false);
+  };
 
-  const settingsMenu = (
-    <PanelSection title="Settings">
-      <PanelSectionRow>
-        <ToggleField
-          label="Notifications"
-          checked={notifications}
-          onChange={(e: boolean) => {
-            backend.setNotificationsSetting(e)
-              .then(async () => {
-                await backend.settingsCommit();
-                setNotifications(e);
-              });
-          }}
-        />
-      </PanelSectionRow>
-      <PanelSectionRow>
-        <ToggleField
-          label="Debug mode"
-          checked={debug}
-          onChange={(e: boolean) => {
-            backend.setDebugSetting(e)
-              .then(async () => {
-                await backend.settingsCommit();
-                setDebug(e);
-              });
-          }}
-        />
-      </PanelSectionRow>
-    </PanelSection>
-  )
+  const onDebugChange = (e: boolean) => {
+    backend.setDebugSetting(e)
+      .then(async () => {
+        await backend.settingsCommit();
+        setDebug(e);
+      });
+  };
+
+  const onNotificationsChange = (e: boolean) => {
+    backend.setNotificationsSetting(e)
+      .then(async () => {
+        await backend.settingsCommit();
+        setNotifications(e);
+      });
+  };
 
   if (controllers.length === 0) {
     return <PanelSection title="Controllers">
@@ -101,8 +76,13 @@ const PluginContent = () => {
           </div>
         </div>
       </PanelSectionRow>
-      {refreshButton}
-      {settingsMenu}
+      <RefreshButton onClick={onRefresh}/>
+      <SettingsMenu
+        debug={debug}
+        notifications={notifications}
+        onDebugChange={onDebugChange}
+        onNotificationsChange={onNotificationsChange}
+      />
     </PanelSection>;
   }
 
@@ -139,8 +119,13 @@ const PluginContent = () => {
           </div>
         </PanelSectionRow>
       ))}
-      {refreshButton}
-      {settingsMenu}
+      <RefreshButton onClick={onRefresh}/>
+      <SettingsMenu
+        debug={debug}
+        notifications={notifications}
+        onDebugChange={onDebugChange}
+        onNotificationsChange={onNotificationsChange}
+      />
     </PanelSection >
   );
 };
