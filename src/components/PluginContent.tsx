@@ -10,22 +10,15 @@ import * as backend from "../backend";
 import { IController } from "../types";
 import ControllersView from "./ControllersView";
 
-const delayPromise = <T,>(value: T) => {
-  return new Promise<T>(resolve => {
-    setTimeout(() => resolve(value), 275);
-  });
-};
-
 const PluginContent = () => {
   const [debug, setDebug] = useState<boolean>(false);
   const [notifications, setNotifications] = useState<boolean>(true);
-  const [loading, setLoading] = useState<boolean>(false);
   const [controllers, setControllers] = useState<IController[]>([]);
 
   // For fetching controller & settings data on render
   useEffect(() => {
     backend.getControllers()
-      .then((controllers) => { setControllers(controllers); });
+      .then(controllers => { setControllers(controllers); });
 
     backend.getDebugSetting()
       .then(debug => { setDebug(debug); });
@@ -34,11 +27,10 @@ const PluginContent = () => {
       .then(notifications => { setNotifications(notifications); });
   }, []);
 
-  const onRefresh = async () => {
-    setControllers([]);
-    setLoading(true);
-    setControllers(await delayPromise(backend.getControllers()));
-    setLoading(false);
+  const onRefresh = () => {
+    backend
+      .getControllers()
+      .then(controllers => { setControllers(controllers); });
   };
 
   const onDebugChange = (e: boolean) => {
@@ -60,9 +52,9 @@ const PluginContent = () => {
   return (
     <PanelSection title="Controllers">
       {controllers.length === 0 ?
-        <NoControllersView loading={loading}/> :
-        <ControllersView controllers={controllers}/>}
-      <RefreshButton onClick={onRefresh}/>
+        <NoControllersView /> :
+        <ControllersView controllers={controllers} />}
+      <RefreshButton onClick={onRefresh} />
       <SettingsMenu
         debug={debug}
         notifications={notifications}
