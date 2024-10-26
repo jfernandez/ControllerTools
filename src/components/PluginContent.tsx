@@ -1,21 +1,14 @@
-import {
-  gamepadDialogClasses,
-  joinClassNames,
-  PanelSection,
-  PanelSectionRow,
-} from "@decky/ui";
+import { PanelSection } from "@decky/ui";
 
 import { useEffect, useState } from "react";
-import { IconContext } from "react-icons";
-import { BiBluetooth, BiUsb } from "react-icons/bi";
 
-import BatteryIcon from "./BatteryIcon";
+import NoControllersView from "./NoControllersView";
 import RefreshButton from "./RefreshButton";
 import SettingsMenu from "./SettingsMenu";
-import VendorIcon from "./VendorIcon";
 
 import * as backend from "../backend";
 import { IController } from "../types";
+import ControllersView from "./ControllersView";
 
 const delayPromise = <T,>(value: T) => {
   return new Promise<T>(resolve => {
@@ -28,7 +21,6 @@ const PluginContent = () => {
   const [notifications, setNotifications] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
   const [controllers, setControllers] = useState<IController[]>([]);
-  const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
 
   // For fetching controller & settings data on render
   useEffect(() => {
@@ -65,60 +57,11 @@ const PluginContent = () => {
       });
   };
 
-  if (controllers.length === 0) {
-    return <PanelSection title="Controllers">
-      <PanelSectionRow>
-        <div className={FieldWithSeparator}>
-          <div className={gamepadDialogClasses.FieldLabelRow}>
-            <div className={gamepadDialogClasses.FieldLabel}>
-              {loading ? 'Loading...' : 'No controllers found'}
-            </div>
-          </div>
-        </div>
-      </PanelSectionRow>
-      <RefreshButton onClick={onRefresh}/>
-      <SettingsMenu
-        debug={debug}
-        notifications={notifications}
-        onDebugChange={onDebugChange}
-        onNotificationsChange={onNotificationsChange}
-      />
-    </PanelSection>;
-  }
-
   return (
     <PanelSection title="Controllers">
-      {controllers.sort((a, b) => a.name.localeCompare(b.name)).map((controller) => (
-        <PanelSectionRow key={controller.productId}>
-          <div className={FieldWithSeparator}>
-            <div className={gamepadDialogClasses.FieldLabelRow}>
-              <div className={gamepadDialogClasses.FieldLabel}>
-                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '10px' } }}>
-                  {controller.bluetooth ? <BiBluetooth /> : <BiUsb />}
-                </IconContext.Provider>
-                <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginRight: '5px' } }}>
-                  <VendorIcon controller={controller}/>
-                </IconContext.Provider>
-                {controller.name}
-              </div>
-              {
-                (controller.capacity > 0 || controller.status !== "unknown") &&
-                <div className={gamepadDialogClasses.FieldChildrenInner}>
-                  {
-                    // only show battery capacity for non-MS vendors unless capacity is > 0 and over BT
-                    // since we don't have the battery capacity yet for Xbox over USB
-                    (controller.vendorId != 1118 || (controller.capacity > 0 && controller.bluetooth)) &&
-                    <span style={{ display: "inline-block", textAlign: "right", }}>{controller.capacity}%</span>
-                  }
-                  <IconContext.Provider value={{ style: { verticalAlign: 'middle', marginLeft: "6px" }, size: '2em' }}>
-                    <BatteryIcon controller={controller}/>
-                  </IconContext.Provider>
-                </div>
-              }
-            </div>
-          </div>
-        </PanelSectionRow>
-      ))}
+      {controllers.length === 0 ?
+        <NoControllersView loading={loading}/> :
+        <ControllersView controllers={controllers}/>}
       <RefreshButton onClick={onRefresh}/>
       <SettingsMenu
         debug={debug}
@@ -126,7 +69,7 @@ const PluginContent = () => {
         onDebugChange={onDebugChange}
         onNotificationsChange={onNotificationsChange}
       />
-    </PanelSection >
+    </PanelSection>
   );
 };
 
