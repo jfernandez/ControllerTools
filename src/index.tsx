@@ -8,75 +8,79 @@ import {
   staticClasses,
   ToggleField,
 } from "@decky/ui";
-import { useEffect, useState, FC } from "react";
+import { useEffect, useState } from "react";
 import { BiBluetooth, BiUsb } from "react-icons/bi";
 import { SiStadia } from "react-icons/si";
 import { RiSwitchLine } from "react-icons/ri";
 import { FaBatteryEmpty, FaBatteryFull, FaBatteryQuarter, FaBatteryHalf, FaBatteryThreeQuarters, FaPlaystation, FaXbox } from "react-icons/fa";
 import { BsController, BsBatteryCharging } from "react-icons/bs";
-import { Controller } from "./types";
+import { IController } from "./types";
 import * as backend from "./backend";
 import { IconContext } from "react-icons";
 import { setupNotifications } from "./notifications";
 
-function getBatteryIcon(controller: Controller) {
-  if (controller.status === 'charging') {
+const getBatteryIcon = (controller: IController) => {
+  if (controller.status === 'charging')
     return <BsBatteryCharging />;
-  }
 
-  if (controller.capacity <= 0) {
+  if (controller.capacity <= 0)
     return <FaBatteryEmpty />;
-  } else if (controller.capacity <= 25) {
-    return <FaBatteryQuarter />;
-  } else if (controller.capacity <= 50) {
-    return <FaBatteryHalf />;
-  } else if (controller.capacity <= 75) {
-    return <FaBatteryThreeQuarters />;
-  } else {
-    return <FaBatteryFull />;
-  }
-}
 
-function getVendorIcon(controller: Controller): JSX.Element {
+  else if (controller.capacity <= 25)
+    return <FaBatteryQuarter />;
+
+  else if (controller.capacity <= 50)
+    return <FaBatteryHalf />;
+
+  else if (controller.capacity <= 75)
+    return <FaBatteryThreeQuarters />;
+
+  else
+    return <FaBatteryFull />;
+};
+
+const getVendorIcon = (controller: IController) => {
   switch (controller.vendorId) {
     case 1356:
       return <FaPlaystation />;
+
     case 1406:
       return <RiSwitchLine />;
+
     case 1118:
-      return <FaXbox />
+      return <FaXbox />;
+
     case 6353: // 0x18D1 = Google
-      return <SiStadia />
+      return <SiStadia />;
+
     default:
       return <BsController />;
   }
-}
+};
 
-async function delayPromise<T>(value: T): Promise<T> {
+const delayPromise = <T,>(value: T) => {
   return new Promise<T>(resolve => {
     setTimeout(() => resolve(value), 275);
   });
-}
+};
 
-const Content: FC = () => {
+const Content = () => {
   const [debug, setDebug] = useState<boolean>(false);
   const [notifications, setNotifications] = useState<boolean>(true);
   const [loading, setLoading] = useState<boolean>(false);
-  const [controllers, setControllers] = useState<Controller[]>([]);
+  const [controllers, setControllers] = useState<IController[]>([]);
   const FieldWithSeparator = joinClassNames(gamepadDialogClasses.Field, gamepadDialogClasses.WithBottomSeparatorStandard);
 
-  // For fetching controller data on render
+  // For fetching controller & settings data on render
   useEffect(() => {
     backend.getControllers()
-      .then((controllers) => { setControllers(controllers) });
-  }, []);
+      .then((controllers) => { setControllers(controllers); });
 
-  // For fetching settings on render
-  useEffect(() => {
     backend.getDebugSetting()
-      .then((debug) => { setDebug(debug) });
+      .then(debug => { setDebug(debug); });
+
     backend.getNotificationsSetting()
-      .then((notifications) => { setNotifications(notifications) });
+      .then(notifications => { setNotifications(notifications); });
   }, []);
 
   const refreshButton = (
@@ -103,9 +107,12 @@ const Content: FC = () => {
         <ToggleField
           label="Notifications"
           checked={notifications}
-          onChange={async (e: boolean) => {
-            await backend.setNotificationsSetting(e);
-            await backend.settingsCommit();
+          onChange={(e: boolean) => {
+            backend.setNotificationsSetting(e)
+              .then(async () => {
+                await backend.settingsCommit();
+                setNotifications(e);
+              });
           }}
         />
       </PanelSectionRow>
@@ -113,9 +120,12 @@ const Content: FC = () => {
         <ToggleField
           label="Debug mode"
           checked={debug}
-          onChange={async (e: boolean) => {
-            await backend.setDebugSetting(e);
-            await backend.settingsCommit();
+          onChange={(e: boolean) => {
+            backend.setDebugSetting(e)
+              .then(async () => {
+                await backend.settingsCommit();
+                setDebug(e);
+              });
           }}
         />
       </PanelSectionRow>

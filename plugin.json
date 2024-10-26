@@ -1,9 +1,7 @@
 {
   "name": "Controller Tools",
   "author": "Jose Fernandez, Ludovic Galibert",
-  "flags": [
-    "debug"
-  ],
+  "flags": [],
   "api_version": 1,
   "publish": {
     "tags": [

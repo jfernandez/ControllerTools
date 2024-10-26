@@ -13,16 +13,11 @@ declare module "*.jpg" {
   export default content;
 }
 
-export interface Controller {
+export interface IController {
   name: string;
   productId: number;
   vendorId: number;
   capacity: number;
   status: string;
   bluetooth: boolean;
-}
-
-export interface Settings {
-  notifications: boolean;
-  debug: boolean;
 }

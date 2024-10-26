@@ -1,5 +1,5 @@
 import { callable } from "@decky/api";
-import { Controller } from "./types";
+import { IController } from "./types";
 
 const PORT: number = 33220;
 const HOST: string = `http://localhost:${PORT}`;
@@ -9,8 +9,7 @@ export const getNotificationsSetting = async () => await callable<[string, boole
 export const setDebugSetting = async (value: boolean) => await callable<[string, boolean], unknown>("settings_setSetting")("debug", value);
 export const setNotificationsSetting = async (value: boolean) => await callable<[string, boolean], unknown>("settings_setSetting")("notifications", value);
 export const settingsCommit = callable<[], unknown>("settings_commit");
-
-export async function getControllers(): Promise<[Controller]> {
+export const getControllers = async (): Promise<[IController]> => {
   let res = await fetch(`${HOST}/controllers`);
   return await res.json();
 }
